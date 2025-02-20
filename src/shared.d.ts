@@ -248,6 +248,7 @@ export type Encoding = {
   position?: string;
   position0?: string;
   foreground?: null | FunctionalChannel;
+  paper_id?: number;
 };
 
 type ColumnTimeLookups = Record<string, Date>;
@@ -350,6 +351,7 @@ export type APICall = {
   background_options?: BackgroundOptions;
   zoom?: ZoomCall;
   zoom_align?: undefined | 'right' | 'left' | 'top' | 'bottom' | 'center';
+  paper_ids?: Float32Array;
 };
 
 export type InitialAPICall = APICall & {

@@ -475,6 +475,10 @@ export abstract class PositionalAesthetic extends OneDAesthetic {
   }
 }
 
+export class Paper_id {
+  field = 'paper_id';
+}
+
 export class X extends PositionalAesthetic {
   field = 'x';
 }

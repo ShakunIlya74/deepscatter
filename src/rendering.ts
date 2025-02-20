@@ -70,6 +70,7 @@ class RenderProps {
   backgroundOpacity: PlotSetting;
   foregroundSize: PlotSetting;
   backgroundSize: PlotSetting;
+  paperIds: Set<number> = new Set();
   constructor() {
     this.maxPoints = new PlotSetting(10_000, 'geometric');
     this.pointSize = new PlotSetting(1, 'geometric');
@@ -78,6 +79,7 @@ class RenderProps {
     this.backgroundOpacity = new PlotSetting(0.5);
     this.foregroundSize = new PlotSetting(1, 'geometric');
     this.backgroundSize = new PlotSetting(1, 'geometric');
+    this.paperIds = new Set();
   }
   apply_prefs(prefs: DS.CompletePrefs) {
     const { duration } = prefs;
@@ -115,6 +117,9 @@ class RenderProps {
   }
   get background_size() {
     return this.backgroundSize.value;
+  }
+  get paper_ids() {
+    return this.paperIds;
   }
 }
 

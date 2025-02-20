@@ -87,12 +87,17 @@ class Scatterplot<T extends Tile> {
   private mark_ready: () => void = function () {
     /*pass*/
   };
+  public paper_ids: Set<number> = new Set();
+  public paper_ids_array: Float32Array;
+  public hover_enabled: boolean = false;
   /**
    * @param selector A DOM selector for the div in which the scatterplot will live.
    * @param width The width of the scatterplot (in pixels)
    * @param height The height of the scatterplot (in pixels)
    */
   constructor(selector: string, width: number, height: number, options: DS.ScatterplotOptions = {}) {
+    this.paper_ids_array = new Float32Array(256);
+
     this.bound = false;
     if (selector !== undefined) {
       this.bind(selector, width, height);
@@ -524,6 +529,33 @@ class Scatterplot<T extends Tile> {
     return this._renderer.aes.dim(dimension).current as ConcreteAesthetic;
   }
 
+  /**
+   * Update the list of paper_ids and re-render the plot.
+   * @param newPaperIds The new list of paper_ids.
+   */
+  public updatePaperIds(newPaperIds: string[]): void {
+    // Store set for quick lookup
+    this.paper_ids = new Set(newPaperIds.map(id => parseFloat(id)));
+    
+    // Create a new Float32Array of fixed size
+    const array = new Float32Array(256);
+
+    let index = 0;
+    this.paper_ids.forEach((id) => {
+      if (index >= 256) {
+        console.warn('Too many paper_ids. Only the first 256 will be used.');
+        return;
+      }
+      array[index++] = id;
+    });
+    
+    this.paper_ids_array = array;
+  }
+
+  public setHoverEnabled(enabled: boolean): void {
+    this.hover_enabled = enabled;
+  }
+  
   set tooltip_html(func) {
     this.tooltip_handler.f = func;
   }
@@ -957,7 +989,6 @@ class LabelClick extends SettableFunction<void, GeoJsonProperties> {
 
 class ClickFunction extends SettableFunction<void> {
   default(datum: StructRowProxy, plot = undefined) {
-    console.log({ ...datum });
     return;
   }
 }

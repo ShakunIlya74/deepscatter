@@ -163,6 +163,13 @@ export default class Zoom<T extends DS.Tile> {
   }
 
   set_highlit_points(data: StructRowProxy[]) {
+    if (!this.scatterplot.hover_enabled) {
+      this.svg_element_selection.select('#mousepoints').selectAll('circle.label').remove();
+      this.html_annotation([]);
+      this.scatterplot.highlit_point_change([]);
+      return;
+    }
+
     const { x_, y_ } = this.scales();
     const xdim = this.scatterplot.dim('x') as PositionalAesthetic;
     const ydim = this.scatterplot.dim('y') as PositionalAesthetic;
@@ -223,6 +230,10 @@ export default class Zoom<T extends DS.Tile> {
 
     this.svg_element_selection.on('mousemove', (event: MouseEvent) => {
       // Debouncing this is really important, it turns out.
+      if (!this.scatterplot.hover_enabled) {
+        return;
+      }
+
       if (Date.now() - last_fired < 75) {
         return;
       }
