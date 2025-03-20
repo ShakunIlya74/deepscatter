@@ -35,6 +35,8 @@ export declare class ReglRenderer<T extends Tile> extends Renderer<T> {
     constructor(selector: any, tileSet: Dataset<T>, scatterplot: Scatterplot<T>);
     get buffers(): MultipurposeBufferSet;
     data(dataset: Dataset<T>): this | DS.Dataset<T>;
+    initialize_paper_ids_texture(): void;
+    refresh_paper_ids_texture(): wrapREGL.Texture2D;
     get props(): any;
     get default_webgl_scale(): number[];
     render_background(props: any): void;
@@ -46,6 +48,7 @@ export declare class ReglRenderer<T extends Tile> extends Renderer<T> {
     single_blur_pass(fbo1: Framebuffer2D, fbo2: Framebuffer2D, direction: [number, number]): void;
     blur(fbo1: Framebuffer2D, fbo2: Framebuffer2D, passes?: number): void;
     render_all(props: any): void;
+    set_image_data(tile: any, ix: any): void;
     initialize_textures(): void;
     get_image_texture(url: string, flipY?: boolean): wrapREGL.Texture2D;
     n_visible(only_color?: number): any;
@@ -66,6 +69,7 @@ export declare class TileBufferManager<T extends Tile> {
     regl: Regl;
     renderer: ReglRenderer<T>;
     regl_elements: Map<string, DS.BufferLocation | null>;
+    private hehe;
     constructor(regl: Regl, tile: T, renderer: ReglRenderer<T>);
     /**
      *

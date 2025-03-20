@@ -307,6 +307,8 @@ export type URLLabels = {
   size_field: string;
 };
 export type LabelOptions = {
+  maxSizeThreshold: any;
+  sizeToZoomFactor: any;
   useColorScale?: boolean; // Whether the colors of text should inherit from the active color scale.
   margin?: number; // The number of pixels around each box. Default 30.
   draggable_labels?: boolean; // Should labels be draggable in place?

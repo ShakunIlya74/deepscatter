@@ -42,6 +42,9 @@ declare class Scatterplot<T extends Tile> {
     handle_highlit_point_change: ChangeToHighlitPointFunction;
     on_zoom?: DS.onZoomCallback;
     private mark_ready;
+    paper_ids: Set<number>;
+    paper_ids_array: Float32Array;
+    hover_enabled: boolean;
     /**
      * @param selector A DOM selector for the div in which the scatterplot will live.
      * @param width The width of the scatterplot (in pixels)
@@ -130,6 +133,12 @@ declare class Scatterplot<T extends Tile> {
      * @returns
      */
     dim(dimension: string): ConcreteAesthetic;
+    /**
+     * Update the list of paper_ids and re-render the plot.
+     * @param newPaperIds The new list of paper_ids.
+     */
+    updatePaperIds(newPaperIds: string[]): void;
+    setHoverEnabled(enabled: boolean): void;
     set tooltip_html(func: (datum: StructRowProxy<any>, plot: Scatterplot<QuadTile>) => string);
     get tooltip_html(): (datum: StructRowProxy<any>, plot: Scatterplot<QuadTile>) => string;
     set label_click(func: any);

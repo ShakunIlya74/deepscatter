@@ -89,7 +89,7 @@ class Scatterplot<T extends Tile> {
   };
   public paper_ids: Set<number> = new Set();
   public paper_ids_array: Float32Array;
-  public hover_enabled: boolean = false;
+  public hover_enabled: boolean = true;
   /**
    * @param selector A DOM selector for the div in which the scatterplot will live.
    * @param width The width of the scatterplot (in pixels)

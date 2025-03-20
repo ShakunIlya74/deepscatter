@@ -65,18 +65,20 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
     }
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
 
+    // Get size-to-zoom factor from options if provided
+    const sizeToZoomFactor = options.sizeToZoomFactor !== undefined ? options.sizeToZoomFactor : 1.0;
+    const maxSizeThreshold = options.maxSizeThreshold !== undefined ? options.maxSizeThreshold : 100;
+
     this.tree = new DepthTree(
       this.ctx,
       pixel_ratio(scatterplot),
       0.5,
       [0.5, 1e6],
-      options.margin === undefined ? 30 : options.margin
+      options.margin === undefined ? 30 : options.margin,
+      sizeToZoomFactor,
+      maxSizeThreshold
     );
 
-    /*    this.tree.accessor = (x, y) => {
-      const f = scatterplot._zoom.scales();
-      return [f.x(x), f.y(y)];
-    };*/
     this.bind_zoom(scatterplot._renderer.zoom);
   }
 
@@ -428,24 +430,22 @@ class DepthTree extends RBush3D {
   public pixel_ratio: number;
   public rectangle_buffer: number;
   public margin: number;
-  //  public insertion_log = [];
   private _accessor: (p: Point) => [number, number] = (p) => [p.x, p.y];
-
-  /*
-  dataSpaceWidth: at zoom level one, how many screen pixels does one x, y unit occupy?
-  */
+  
+  // Add a property to control how size affects zoom level
+  public sizeToZoomFactor: number = 1.0;
+  // Use maxSizeThreshold to normalize sizes
+  public maxSizeThreshold: number = 100;
 
   constructor(
     context: CanvasRenderingContext2D,
     pixel_ratio: number,
     scale_factor = 0.5,
     zoom = [0.1, 1000],
-    margin = 10 // in screen pixels
+    margin = 10, // in screen pixels
+    sizeToZoomFactor = 1.0,
+    maxSizeThreshold = 100
   ) {
-    // scale factor used to determine how quickly points scale.
-    // Not implemented.
-    // size = exp(log(k) * scale_factor);
-
     super();
     this.scale_factor = scale_factor;
     this.mindepth = zoom[0];
@@ -453,7 +453,10 @@ class DepthTree extends RBush3D {
     this.context = context;
     this.pixel_ratio = pixel_ratio;
     this.margin = margin;
+    this.sizeToZoomFactor = sizeToZoomFactor;
+    this.maxSizeThreshold = maxSizeThreshold;
   }
+
 
   /**
    *
@@ -513,35 +516,50 @@ class DepthTree extends RBush3D {
     return p;
   }
 
-  insert_point(point: RawPoint | Point, mindepth = 1 / 4) {
-    if (point.text === undefined || point.text === '') {
-      return;
+    // Calculate zoom level directly from point size
+    calculateZoomLevel(pointSize: number): number {
+      // Normalize size between 0 and 1 based on maxSizeThreshold
+      // Smaller sizes will be closer to 0, larger sizes closer to 1
+      const normalizedSize = Math.min(pointSize / this.maxSizeThreshold, 1.0);
+      
+      // Convert the normalized size to a zoom level
+      // - Smaller points appear at higher zoom levels (more zoomed in)
+      // - Larger points appear at lower zoom levels (more zoomed out)
+      // - margin is used as the maximum zoom depth (most zoomed in)
+      
+      // Map normalized size to a zoom level between margin (zoomed in) and mindepth (zoomed out)
+      const zoomRange = this.margin - this.mindepth;
+      const zoomLevel = this.margin - (normalizedSize * zoomRange * this.sizeToZoomFactor);
+      
+      // Ensure zoom level stays within bounds
+      return Math.max(this.mindepth, Math.min(zoomLevel, this.margin));
     }
-    let measured: Point;
-    if (point['pixel_width'] === undefined) {
-      measured = {
-        ...point,
-        ...measure_text(point, this.pixel_ratio, this.margin),
-      };
-    } else {
-      measured = point;
-    }
-    const p3d = this.to3d(measured, mindepth, this.maxdepth);
-    if (!this.collides(p3d)) {
-      if (mindepth <= this.mindepth) {
-        // It's visible from the minimum depth.
-        //        p3d.visible_from = mindepth;
-        //        this.insertion_log.push(p3d.maxX, p3d.minX, p3d.minZ, p3d.data.text);
-        this.insert(p3d);
-      } else {
-        // If we can't find any colliders, try inserting it twice as high up.
-        // Recursive, so probably expensive.
-        this.insert_point(point, mindepth / 2);
+  
+    // Modified insert_point method to use size-based zoom level
+    insert_point(point: RawPoint | Point, mindepth = 1 / 4) {
+      if (point.text === undefined || point.text === '') {
+        return;
       }
-    } else {
-      this.insert_after_collisions(p3d);
+      
+      let measured: Point;
+      if (point['pixel_width'] === undefined) {
+        measured = {
+          ...point,
+          ...measure_text(point, this.pixel_ratio, this.margin),
+        };
+      } else {
+        measured = point;
+      }
+      
+      // Calculate zoom level directly from the point's height/size
+      const zoomLevel = this.calculateZoomLevel(point.height);
+      
+      // Create the 3D point with the calculated zoom level
+      const p3d = this.to3d(measured, zoomLevel, this.maxdepth);
+      
+      // Directly insert the point without checking for collisions
+      this.insert(p3d);
     }
-  }
 
   insert_after_collisions(p3d: P3d) {
     // The depth until which we're hidden; from min_depth (.1 ish) to max_depth(100 ish)
