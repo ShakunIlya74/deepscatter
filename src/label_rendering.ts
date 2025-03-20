@@ -180,9 +180,69 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       maxZ: transform.k,
     });
 
-    //    context.fillStyle = "rgba(0, 0, 0, 0)";
     context.clearRect(0, 0, 4096, 4096);
     const dim = this.scatterplot.dim('color');
+    
+    // Pre-process overlaps to calculate accurate dimensions for each label
+    for (const d of overlaps) {
+      const datum = d.data as RawPoint;
+      
+      // Skip processing for hidden labels
+      let mark_hidden = false;
+      for (const filter of [
+        this.scatterplot.dim('filter'),
+        this.scatterplot.dim('filter2'),
+      ]) {
+        if (datum.properties[filter.field]) {
+          if (!filter.apply(datum.properties)) {
+            mark_hidden = true;
+          }
+        }
+      }
+      if (mark_hidden) {
+        datum.properties.__display = 'none';
+        continue;
+      } else {
+        datum.properties.__display = 'inline';
+      }
+      
+      // Check if this label is currently hovered
+      const isHovered = this.hovered === '' + d.minZ + d.minX;
+      
+      // Apply emphasis to font size when hovered
+      const emphasize = isHovered ? 2 : 0;
+      
+      // Set the font exactly as it will be rendered
+      context.font = `bold ${datum.height * size_adjust + emphasize}pt 'Inter', 'Roboto', sans-serif`;
+      
+      // Measure text with the actual rendering font
+      const textMetrics = context.measureText(datum.text);
+      
+      // Increase padding when hovered
+      const boxPadding = 4;
+      
+      // Update the point with accurate dimensions
+      d.data.pixel_width = (textMetrics.width / this.tree.pixel_ratio) + (boxPadding * 2 / this.tree.pixel_ratio);
+      
+      // Use the font metrics for height when available
+      if (textMetrics.actualBoundingBoxAscent !== undefined && 
+          textMetrics.actualBoundingBoxDescent !== undefined) {
+        d.data.pixel_height = ((textMetrics.actualBoundingBoxAscent + 
+                               textMetrics.actualBoundingBoxDescent) / this.tree.pixel_ratio) + 
+                               (boxPadding * 2 / this.tree.pixel_ratio);
+      } else {
+        // Fallback when metrics are not available
+        d.data.pixel_height = (datum.height * 1.2 / this.tree.pixel_ratio) + 
+                             (boxPadding * 2 / this.tree.pixel_ratio);
+      }
+      
+      // Store the text dimensions and hover state for later use
+      datum.properties.__textWidth = textMetrics.width;
+      datum.properties.__textHeight = datum.height * size_adjust + emphasize;
+      datum.properties.__isHovered = isHovered;
+      datum.properties.__boxPadding = boxPadding;
+    }
+
     const bboxes = select(this.labelgroup)
       .selectAll('rect.labelbbox')
       // Keyed by the coordinates.
@@ -200,63 +260,67 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
 
     // Go through and draw the canvas events.
     for (const d of overlaps) {
-      const datum = d.data as RawPoint;
+      const datum = d.data as Point;
       const x = x_(datum.x) as number;
       const y = y_(datum.y) as number;
 
-      context.globalAlpha = 1;
-      context.fillStyle = 'white';
-      let mark_hidden = false;
-      for (const filter of [
-        this.scatterplot.dim('filter'),
-        this.scatterplot.dim('filter2'),
-      ]) {
-        // If the datum contains information about the
-        // field being used for filtering, filter it.
-        if (datum.properties[filter.field]) {
-          if (!filter.apply(datum.properties)) {
-            mark_hidden = true;
-          }
-        }
-      }
-      if (mark_hidden) {
-        datum.properties.__display = 'none';
+      // Skip hidden labels
+      if (datum.properties.__display === 'none') {
         continue;
-      } else {
-        datum.properties.__display = 'inline';
       }
-      if (
-        this.options.useColorScale === false ||
-        this.options.useColorScale === undefined
-      ) {
-        context.shadowColor = '#71797E';
-        context.strokeStyle = '#71797E';
-      } else if (datum.properties[dim.field]) {
-        const exists =
-          dim.scale.domain().indexOf(datum.properties[dim.field]) > -1;
+
+      context.globalAlpha = 1;
+      
+      // Get label color if using color scale
+      let labelColor = '#333333'; // Default dark text color
+      if (this.options.useColorScale && datum.properties[dim.field]) {
+        const exists = dim.scale.domain().indexOf(datum.properties[dim.field]) > -1;
         if (exists) {
-          context.shadowColor = dim.scale(datum.properties[dim.field]);
-          context.strokeStyle = dim.scale(datum.properties[dim.field]);
-        } else {
-          context.shadowColor = 'gray';
-          context.strokeStyle = 'gray';
+          labelColor = dim.scale(datum.properties[dim.field]);
         }
-      } else {
-        context.shadowColor = 'black';
       }
-      let emphasize = 0;
-      if (this.hovered === '' + d.minZ + d.minX) {
-        emphasize += 2;
-      }
-      context.font = `${datum.height * size_adjust + emphasize}pt verdana`;
+      
+      // Check if this label is hovered
+      const isHovered = this.hovered === '' + d.minZ + d.minX;
+      const emphasize = isHovered ? 2 : 0;
+      
+      // Get the dimensions we calculated earlier
+      const textWidth = datum.properties.__textWidth;
+      const textHeight = datum.properties.__textHeight;
+      const boxPadding = datum.properties.__boxPadding;
 
-      context.shadowBlur = 12 + emphasize * 3;
-      context.lineWidth = 3 + emphasize;
+      // Draw a subtle background box with blurred edges
+      context.save();
+      // Make shadow more pronounced when hovered
+      context.shadowColor = 'rgba(255, 255, 255, 0.75)';
+      context.shadowBlur = 8;
+      context.shadowOffsetX = 0;
+      context.shadowOffsetY = 0;
+
+      // Less opaque background in both states
+      context.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      
+      context.beginPath();
+      context.roundRect(
+        x - textWidth / 2 - boxPadding,
+        y - textHeight / 2 - boxPadding,
+        textWidth + boxPadding * 2,
+        textHeight + boxPadding * 2,
+        8
+      );
+      context.fill();
+      context.restore();
+
+      // Make the font bold with the 'Inter' font
+      context.font = `bold ${datum.height * size_adjust + emphasize}pt 'Inter', 'Roboto', sans-serif`;
+      
+      // Draw the actual text with a subtle outline for extra clarity
+      context.lineWidth = 0.5;
+      context.strokeStyle = 'rgba(0, 0, 0, 0.1)';
       context.strokeText(datum.text, x, y);
-      context.shadowBlur = 0;
-
-      context.lineWidth = 4 + emphasize;
-      context.fillStyle = 'white';
+      
+      // Draw the text fill
+      context.fillStyle = labelColor;
       context.fillText(datum.text, x, y);
       /*      context.strokeStyle = 'red';
       context.strokeRect(
@@ -269,26 +333,24 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
 
     bboxes
       .attr('class', 'labelbbox')
-      .attr(
-        'x',
-        (d) => x_(d.data.x) - (d.data.pixel_width * this.tree.pixel_ratio) / 2
-      )
-      .attr(
-        'y',
-        (d) =>
-          y_(d.data.y) -
-          (d.data.pixel_height * this.tree.pixel_ratio) / 2 -
-          Y_BUFFER
-      )
+      .attr('x', (d) => {
+        const datum = d.data as Point;
+        return x_(datum.x) - (datum.pixel_width * this.tree.pixel_ratio) / 2;
+      })
+      .attr('y', (d) => {
+        const datum = d.data as Point;
+        return y_(datum.y) - (datum.pixel_height * this.tree.pixel_ratio) / 2;
+      })
       .attr('width', (d) => d.data.pixel_width * this.tree.pixel_ratio)
-      .attr('stroke', 'red')
-      .attr(
-        'height',
-        (d) => d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2
-      )
+      .attr('height', (d) => d.data.pixel_height * this.tree.pixel_ratio)
+      .attr('rx', (d) => (d.data.properties.__isHovered ? 8 : 6)) // Match canvas corners
+      .attr('ry', (d) => (d.data.properties.__isHovered ? 8 : 6))
+      .attr('stroke', 'none')
       .attr('display', (d) => {
         return d.data.properties.__display || 'inline';
       })
+      .style('cursor', 'pointer')
+      .style('opacity', RECT_DEFAULT_OPACITY)
       .on('mouseover', (event, d) => {
         select(event.target).style('opacity', RECT_DEFAULT_OPACITY);
         this.hovered = '' + d.minZ + d.minX;

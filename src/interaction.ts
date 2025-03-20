@@ -132,6 +132,42 @@ export default class Zoom<T extends DS.Tile> {
     canvas.transition().duration(duration).call(zoomer.transform, t);
   }
 
+  /**
+   * Zoom in or out from the current center position
+   * @param zoomFactor Positive number to zoom in (e.g., 1.5), negative to zoom out (e.g., -1.5)
+   * @param duration Animation duration in milliseconds (default: 1000)
+   */
+  zoom_by_factor(zoomFactor: number, duration = 1000) {
+    if (zoomFactor === 0) return;
+
+    const { svg_element_selection: canvas, zoomer, width, height, transform } = this;
+
+    if (!transform || !zoomer) {
+      console.warn("Cannot zoom: transform or zoomer not initialized");
+      return;
+    }
+
+    const factor = zoomFactor > 0 ? zoomFactor : 1 / Math.abs(zoomFactor);
+    
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    const centerDataX = (centerX - transform.x) / transform.k;
+    const centerDataY = (centerY - transform.y) / transform.k;
+    
+    const newK = transform.k * factor;
+    const newX = centerX - centerDataX * newK;
+    const newY = centerY - centerDataY * newK;
+    
+    const newTransform = zoomIdentity
+      .translate(newX, newY)
+      .scale(newK);
+
+    canvas.transition()
+      .duration(duration)
+      .call(zoomer.transform, newTransform);
+  }
+
   initialize_zoom() {
     const { width, height, svg_element_selection: canvas } = this;
     this.transform = zoomIdentity;
