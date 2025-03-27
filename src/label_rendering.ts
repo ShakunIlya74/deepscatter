@@ -68,6 +68,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
     // Get size-to-zoom factor from options if provided
     const sizeToZoomFactor = options.sizeToZoomFactor !== undefined ? options.sizeToZoomFactor : 1.0;
     const maxSizeThreshold = options.maxSizeThreshold !== undefined ? options.maxSizeThreshold : 100;
+    const fontSizeFactor = options.fontSizeFactor !== undefined ? options.fontSizeFactor : 1.0;
 
     this.tree = new DepthTree(
       this.ctx,
@@ -76,7 +77,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       [0.5, 1e6],
       options.margin === undefined ? 30 : options.margin,
       sizeToZoomFactor,
-      maxSizeThreshold
+      maxSizeThreshold,
     );
 
     this.bind_zoom(scatterplot._renderer.zoom);
@@ -182,7 +183,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       maxZ: transform.k,
     });
 
-    //    context.fillStyle = "rgba(0, 0, 0, 0)";
+    //  context.fillStyle = "rgba(0, 0, 0, 0)";
     context.clearRect(0, 0, 4096, 4096);
     const dim = this.scatterplot.dim('color');
     const bboxes = select(this.labelgroup)
@@ -249,29 +250,146 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         }
       } else {
         // console.log('hehe3', dim.scale.domain(), this.options.useColorScale, datum.properties, dim.field);
-          // console.log("properties", datum.properties, datum.properties[dim.field], dim.field);
-          // console.log(datum.properties.color);
-          context.fillStyle = datum.properties.color;
-          context.shadowColor = "white";
-          context.strokeStyle = datum.properties.color;
+        // console.log("properties", datum.properties, datum.properties[dim.field], dim.field);
+        // console.log(datum.properties.color);
+        context.shadowColor = "white";
+
         // context.shadowColor = 'black';
-  
+
       }
+
+
+
       let emphasize = 0;
       if (this.hovered === '' + d.minZ + d.minX) {
-        emphasize += 2;
+        emphasize = 2;
       }
-      context.font = `bold ${datum.height * size_adjust + emphasize}pt verdana`;
 
-      context.shadowBlur = 12 + emphasize * 3;
-      context.lineWidth = 3 + emphasize;
-      context.strokeText(datum.text, x, y);
-      context.shadowBlur = 0;
+      // Store the original text for measurement
+      const text = datum.text;
+      const fontSize = Math.round(datum.height * size_adjust * this.options.fontSizeFactor);
+      // Use a more modern font stack
+      context.font = `${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
 
-      context.lineWidth = 4 + emphasize;
-      // context.fillStyle = 'white';
-      context.fillStyle = datum.properties.color;
-      context.fillText(datum.text, x, y);
+      // Get color from properties
+      const propertyColor = datum.properties.color || "#666666"; // Default to gray if no color
+
+      // Create darker version of the property color for text
+      let darkerColor = propertyColor;
+      try {
+        // Convert hex to RGB, make it darker, then back to hex
+        const r = parseInt(propertyColor.slice(1, 3), 16);
+        const g = parseInt(propertyColor.slice(3, 5), 16);
+        const b = parseInt(propertyColor.slice(5, 7), 16);
+
+        // Make each component darker by reducing by 40%
+        const darkerR = Math.max(0, Math.floor(r * 0.6));
+        const darkerG = Math.max(0, Math.floor(g * 0.6));
+        const darkerB = Math.max(0, Math.floor(b * 0.6));
+
+        // Convert back to hex
+        darkerColor = `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
+      } catch (e) {
+        // Fallback to dark gray if conversion fails
+        darkerColor = "#333333";
+      }
+
+      // Default text color is the darker version
+      let textColor = darkerColor;
+
+      // Measure text dimensions
+      const textMetrics = context.measureText(text);
+      const textWidth = textMetrics.width;
+      const textHeight = fontSize * 1.2; // Approximate height based on font size
+
+      // Draw background rectangle with padding
+      const padding = fontSize * 0.1; // Dynamic padding based on font size
+      const rectX = x - textWidth / 2 - padding;
+      const rectY = y - textHeight / 2 - padding * 0.8;
+      const rectWidth = textWidth + (padding * 2);
+      const rectHeight = textHeight + (padding * 1.6);
+
+      // Set border radius for rounded corners - proportional to font size
+      const cornerRadius = Math.min(rectHeight * 0.5, 10);
+
+      // Save context for shadow to only apply to background
+      context.save();
+
+      // Add thick shadow of the same color as the rectangle to blur the edges
+      context.shadowColor = "rgba(255, 255, 255, 0.95)";
+      context.shadowBlur = 12 + (emphasize * 3);
+      context.shadowOffsetX = 0;
+      context.shadowOffsetY = 0;
+
+      // Fill rounded rectangle with semi-transparent white background
+      context.fillStyle = "rgba(255, 255, 255, 0.5)";
+      context.beginPath();
+      context.moveTo(rectX + cornerRadius, rectY);
+      context.lineTo(rectX + rectWidth - cornerRadius, rectY);
+      context.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+      context.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+      context.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+      context.lineTo(rectX + cornerRadius, rectY + rectHeight);
+      context.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+      context.lineTo(rectX, rectY + cornerRadius);
+      context.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+      context.closePath();
+      context.fill();
+
+      // Restore context to remove shadow for text
+      context.restore();
+
+      // On hover: Add colored shadow to the rectangle
+      if (emphasize > 0) {
+        context.save();
+
+        // Add colored shadow matching original property color
+        context.shadowColor = "rgba(255, 255, 255, 97)";
+        context.shadowBlur = 15;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+
+        // Redraw the rectangle with the colored shadow
+        context.fillStyle = "rgba(255, 255, 255, 0.1)"; // Slightly more opaque on hover
+        context.beginPath();
+        context.moveTo(rectX + cornerRadius, rectY);
+        context.lineTo(rectX + rectWidth - cornerRadius, rectY);
+        context.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+        context.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+        context.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+        context.lineTo(rectX + cornerRadius, rectY + rectHeight);
+        context.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+        context.lineTo(rectX, rectY + cornerRadius);
+        context.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+        context.closePath();
+        context.fill();
+
+        context.restore();
+
+        // Add white outline around text on hover
+        context.strokeStyle = "white";
+        context.lineWidth = 1.5;
+        context.lineJoin = "round";
+        context.strokeText(text, x, y);
+      }
+
+      // Draw the actual text with darker property color
+      context.fillStyle = textColor;
+      context.fillText(text, x, y);
+
+      // Additional highlight on hover
+      if (emphasize > 0) {
+        // Add subtle inner glow
+        context.save();
+        context.globalAlpha = 0.7;
+        context.shadowColor = propertyColor;
+        context.shadowBlur = 4;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        context.fillStyle = textColor;
+        context.fillText(text, x, y);
+        context.restore();
+      }
       /*      context.strokeStyle = 'red';
       context.strokeRect(
         x - (datum.pixel_width / 2) * this.tree.pixel_ratio,
@@ -443,11 +561,12 @@ class DepthTree extends RBush3D {
   public rectangle_buffer: number;
   public margin: number;
   private _accessor: (p: Point) => [number, number] = (p) => [p.x, p.y];
-  
+
   // Add a property to control how size affects zoom level
   public sizeToZoomFactor: number = 1.0;
   // Use maxSizeThreshold to normalize sizes
   public maxSizeThreshold: number = 100;
+  public fontSizeFactor: number = 1.0;
 
   constructor(
     context: CanvasRenderingContext2D,
@@ -456,7 +575,7 @@ class DepthTree extends RBush3D {
     zoom = [0.1, 1000],
     margin = 10, // in screen pixels
     sizeToZoomFactor = 1.0,
-    maxSizeThreshold = 100
+    maxSizeThreshold = 100,
   ) {
     super();
     this.scale_factor = scale_factor;
@@ -528,50 +647,50 @@ class DepthTree extends RBush3D {
     return p;
   }
 
-    // Calculate zoom level directly from point size
-    calculateZoomLevel(pointSize: number): number {
-      // Normalize size between 0 and 1 based on maxSizeThreshold
-      // Smaller sizes will be closer to 0, larger sizes closer to 1
-      const normalizedSize = Math.min(pointSize / this.maxSizeThreshold, 1.0);
-      
-      // Convert the normalized size to a zoom level
-      // - Smaller points appear at higher zoom levels (more zoomed in)
-      // - Larger points appear at lower zoom levels (more zoomed out)
-      // - margin is used as the maximum zoom depth (most zoomed in)
-      
-      // Map normalized size to a zoom level between margin (zoomed in) and mindepth (zoomed out)
-      const zoomRange = this.margin - this.mindepth;
-      const zoomLevel = this.margin - (normalizedSize * zoomRange * this.sizeToZoomFactor);
-      
-      // Ensure zoom level stays within bounds
-      return Math.max(this.mindepth, Math.min(zoomLevel, this.margin));
+  // Calculate zoom level directly from point size
+  calculateZoomLevel(pointSize: number): number {
+    // Normalize size between 0 and 1 based on maxSizeThreshold
+    // Smaller sizes will be closer to 0, larger sizes closer to 1
+    const normalizedSize = Math.min(pointSize / this.maxSizeThreshold, 1.0);
+
+    // Convert the normalized size to a zoom level
+    // - Smaller points appear at higher zoom levels (more zoomed in)
+    // - Larger points appear at lower zoom levels (more zoomed out)
+    // - margin is used as the maximum zoom depth (most zoomed in)
+
+    // Map normalized size to a zoom level between margin (zoomed in) and mindepth (zoomed out)
+    const zoomRange = this.margin - this.mindepth;
+    const zoomLevel = this.margin - (normalizedSize * zoomRange * this.sizeToZoomFactor);
+
+    // Ensure zoom level stays within bounds
+    return Math.max(this.mindepth, Math.min(zoomLevel, this.margin));
+  }
+
+  // Modified insert_point method to use size-based zoom level
+  insert_point(point: RawPoint | Point, mindepth = 1 / 4) {
+    if (point.text === undefined || point.text === '') {
+      return;
     }
-  
-    // Modified insert_point method to use size-based zoom level
-    insert_point(point: RawPoint | Point, mindepth = 1 / 4) {
-      if (point.text === undefined || point.text === '') {
-        return;
-      }
-      
-      let measured: Point;
-      if (point['pixel_width'] === undefined) {
-        measured = {
-          ...point,
-          ...measure_text(point, this.pixel_ratio, this.margin),
-        };
-      } else {
-        measured = point;
-      }
-      
-      // Calculate zoom level directly from the point's height/size
-      const zoomLevel = this.calculateZoomLevel(point.height);
-      
-      // Create the 3D point with the calculated zoom level
-      const p3d = this.to3d(measured, zoomLevel, this.maxdepth);
-      
-      // Directly insert the point without checking for collisions
-      this.insert(p3d);
+
+    let measured: Point;
+    if (point['pixel_width'] === undefined) {
+      measured = {
+        ...point,
+        ...measure_text(point, this.pixel_ratio, this.margin),
+      };
+    } else {
+      measured = point;
     }
+
+    // Calculate zoom level directly from the point's height/size
+    const zoomLevel = this.calculateZoomLevel(point.height);
+
+    // Create the 3D point with the calculated zoom level
+    const p3d = this.to3d(measured, zoomLevel, this.maxdepth);
+
+    // Directly insert the point without checking for collisions
+    this.insert(p3d);
+  }
 
   insert_after_collisions(p3d: P3d) {
     // The depth until which we're hidden; from min_depth (.1 ish) to max_depth(100 ish)

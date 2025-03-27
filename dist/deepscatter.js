@@ -37879,6 +37879,7 @@ class LabelMaker extends Renderer {
     this.ctx = this.canvas.getContext("2d");
     const sizeToZoomFactor = options.sizeToZoomFactor !== void 0 ? options.sizeToZoomFactor : 1;
     const maxSizeThreshold = options.maxSizeThreshold !== void 0 ? options.maxSizeThreshold : 100;
+    options.fontSizeFactor !== void 0 ? options.fontSizeFactor : 1;
     this.tree = new DepthTree(
       this.ctx,
       pixel_ratio(scatterplot),
@@ -38014,22 +38015,95 @@ class LabelMaker extends Renderer {
           context2.strokeStyle = "gray";
         }
       } else {
-        context2.fillStyle = datum2.properties.color;
         context2.shadowColor = "white";
-        context2.strokeStyle = datum2.properties.color;
       }
       let emphasize = 0;
       if (this.hovered === "" + d.minZ + d.minX) {
-        emphasize += 2;
+        emphasize = 2;
       }
-      context2.font = `bold ${datum2.height * size_adjust + emphasize}pt verdana`;
+      const text = datum2.text;
+      const fontSize = Math.round(datum2.height * size_adjust * this.options.fontSizeFactor);
+      context2.font = `${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
+      const propertyColor = datum2.properties.color || "#666666";
+      let darkerColor = propertyColor;
+      try {
+        const r = parseInt(propertyColor.slice(1, 3), 16);
+        const g = parseInt(propertyColor.slice(3, 5), 16);
+        const b = parseInt(propertyColor.slice(5, 7), 16);
+        const darkerR = Math.max(0, Math.floor(r * 0.6));
+        const darkerG = Math.max(0, Math.floor(g * 0.6));
+        const darkerB = Math.max(0, Math.floor(b * 0.6));
+        darkerColor = `#${darkerR.toString(16).padStart(2, "0")}${darkerG.toString(16).padStart(2, "0")}${darkerB.toString(16).padStart(2, "0")}`;
+      } catch (e) {
+        darkerColor = "#333333";
+      }
+      let textColor = darkerColor;
+      const textMetrics = context2.measureText(text);
+      const textWidth = textMetrics.width;
+      const textHeight = fontSize * 1.2;
+      const padding = fontSize * 0.1;
+      const rectX = x - textWidth / 2 - padding;
+      const rectY = y - textHeight / 2 - padding * 0.8;
+      const rectWidth = textWidth + padding * 2;
+      const rectHeight = textHeight + padding * 1.6;
+      const cornerRadius = Math.min(rectHeight * 0.5, 10);
+      context2.save();
+      context2.shadowColor = "rgba(255, 255, 255, 0.95)";
       context2.shadowBlur = 12 + emphasize * 3;
-      context2.lineWidth = 3 + emphasize;
-      context2.strokeText(datum2.text, x, y);
-      context2.shadowBlur = 0;
-      context2.lineWidth = 4 + emphasize;
-      context2.fillStyle = datum2.properties.color;
-      context2.fillText(datum2.text, x, y);
+      context2.shadowOffsetX = 0;
+      context2.shadowOffsetY = 0;
+      context2.fillStyle = "rgba(255, 255, 255, 0.5)";
+      context2.beginPath();
+      context2.moveTo(rectX + cornerRadius, rectY);
+      context2.lineTo(rectX + rectWidth - cornerRadius, rectY);
+      context2.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+      context2.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+      context2.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+      context2.lineTo(rectX + cornerRadius, rectY + rectHeight);
+      context2.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+      context2.lineTo(rectX, rectY + cornerRadius);
+      context2.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+      context2.closePath();
+      context2.fill();
+      context2.restore();
+      if (emphasize > 0) {
+        context2.save();
+        context2.shadowColor = "rgba(255, 255, 255, 97)";
+        context2.shadowBlur = 15;
+        context2.shadowOffsetX = 0;
+        context2.shadowOffsetY = 0;
+        context2.fillStyle = "rgba(255, 255, 255, 0.1)";
+        context2.beginPath();
+        context2.moveTo(rectX + cornerRadius, rectY);
+        context2.lineTo(rectX + rectWidth - cornerRadius, rectY);
+        context2.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+        context2.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+        context2.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+        context2.lineTo(rectX + cornerRadius, rectY + rectHeight);
+        context2.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+        context2.lineTo(rectX, rectY + cornerRadius);
+        context2.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+        context2.closePath();
+        context2.fill();
+        context2.restore();
+        context2.strokeStyle = "white";
+        context2.lineWidth = 1.5;
+        context2.lineJoin = "round";
+        context2.strokeText(text, x, y);
+      }
+      context2.fillStyle = textColor;
+      context2.fillText(text, x, y);
+      if (emphasize > 0) {
+        context2.save();
+        context2.globalAlpha = 0.7;
+        context2.shadowColor = propertyColor;
+        context2.shadowBlur = 4;
+        context2.shadowOffsetX = 0;
+        context2.shadowOffsetY = 0;
+        context2.fillStyle = textColor;
+        context2.fillText(text, x, y);
+        context2.restore();
+      }
     }
     bboxes.attr("class", "labelbbox").attr(
       "x",
@@ -38111,6 +38185,7 @@ class DepthTree extends dist.RBush3D {
     this._accessor = (p) => [p.x, p.y];
     this.sizeToZoomFactor = 1;
     this.maxSizeThreshold = 100;
+    this.fontSizeFactor = 1;
     this.scale_factor = scale_factor;
     this.mindepth = zoom2[0];
     this.maxdepth = zoom2[1];

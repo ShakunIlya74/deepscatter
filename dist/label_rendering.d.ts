@@ -75,6 +75,7 @@ declare class DepthTree extends RBush3D {
     private _accessor;
     sizeToZoomFactor: number;
     maxSizeThreshold: number;
+    fontSizeFactor: number;
     constructor(context: CanvasRenderingContext2D, pixel_ratio: number, scale_factor?: number, zoom?: number[], margin?: number, // in screen pixels
     sizeToZoomFactor?: number, maxSizeThreshold?: number);
     /**
