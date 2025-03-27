@@ -23053,7 +23053,7 @@ class Aesthetic {
   }
   get webGLDomain() {
     if (this.is_dictionary()) {
-      return [0, 4096];
+      return [0, 8192];
     }
     return this.domain;
   }
@@ -23230,8 +23230,9 @@ class Aesthetic {
     if ((_a2 = column == null ? void 0 : column.type) == null ? void 0 : _a2.dictionary) {
       input.fill("");
       const dvals = column.data[0].dictionary.toArray();
-      for (const [i, d] of dvals.entries()) {
-        input[i] = d;
+      const maxEntries = Math.min(dvals.length, texture_size);
+      for (let i = 0; i < maxEntries; i++) {
+        input[i] = dvals[i];
       }
     } else {
       input = input.map((d) => this.scale(d));
