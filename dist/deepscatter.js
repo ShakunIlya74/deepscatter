@@ -37983,7 +37983,6 @@ class LabelMaker extends Renderer {
       const x = x_(datum2.x);
       const y = y_(datum2.y);
       context2.globalAlpha = 1;
-      context2.fillStyle = "white";
       let mark_hidden = false;
       for (const filter2 of [
         this.scatterplot.dim("filter"),
@@ -38004,6 +38003,7 @@ class LabelMaker extends Renderer {
       if (this.options.useColorScale === false || this.options.useColorScale === void 0) {
         context2.shadowColor = "#71797E";
         context2.strokeStyle = "#71797E";
+        console.log("useColorScale:", this.options.useColorScale);
       } else if (datum2.properties[dim.field]) {
         const exists = dim.scale.domain().indexOf(datum2.properties[dim.field]) > -1;
         if (exists) {
@@ -38014,19 +38014,21 @@ class LabelMaker extends Renderer {
           context2.strokeStyle = "gray";
         }
       } else {
-        context2.shadowColor = "black";
+        context2.fillStyle = datum2.properties.color;
+        context2.shadowColor = "white";
+        context2.strokeStyle = datum2.properties.color;
       }
       let emphasize = 0;
       if (this.hovered === "" + d.minZ + d.minX) {
         emphasize += 2;
       }
-      context2.font = `${datum2.height * size_adjust + emphasize}pt verdana`;
+      context2.font = `bold ${datum2.height * size_adjust + emphasize}pt verdana`;
       context2.shadowBlur = 12 + emphasize * 3;
       context2.lineWidth = 3 + emphasize;
       context2.strokeText(datum2.text, x, y);
       context2.shadowBlur = 0;
       context2.lineWidth = 4 + emphasize;
-      context2.fillStyle = "white";
+      context2.fillStyle = datum2.properties.color;
       context2.fillText(datum2.text, x, y);
     }
     bboxes.attr("class", "labelbbox").attr(

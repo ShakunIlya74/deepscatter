@@ -207,7 +207,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       const y = y_(datum.y) as number;
 
       context.globalAlpha = 1;
-      context.fillStyle = 'white';
+      // context.fillStyle = 'white';
       let mark_hidden = false;
       for (const filter of [
         this.scatterplot.dim('filter'),
@@ -233,24 +233,35 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       ) {
         context.shadowColor = '#71797E';
         context.strokeStyle = '#71797E';
+        // console.log('hehe0', dim.scale.domain(), this.options, this.options.useColorScale, datum.properties, dim.field);
+        console.log('useColorScale:', this.options.useColorScale);
       } else if (datum.properties[dim.field]) {
         const exists =
           dim.scale.domain().indexOf(datum.properties[dim.field]) > -1;
         if (exists) {
+          // console.log('hehe1', exists, dim.scale.domain());
           context.shadowColor = dim.scale(datum.properties[dim.field]);
           context.strokeStyle = dim.scale(datum.properties[dim.field]);
         } else {
+          // console.log('hehe2', exists, dim.scale.domain());
           context.shadowColor = 'gray';
           context.strokeStyle = 'gray';
         }
       } else {
-        context.shadowColor = 'black';
+        // console.log('hehe3', dim.scale.domain(), this.options.useColorScale, datum.properties, dim.field);
+          // console.log("properties", datum.properties, datum.properties[dim.field], dim.field);
+          // console.log(datum.properties.color);
+          context.fillStyle = datum.properties.color;
+          context.shadowColor = "white";
+          context.strokeStyle = datum.properties.color;
+        // context.shadowColor = 'black';
+  
       }
       let emphasize = 0;
       if (this.hovered === '' + d.minZ + d.minX) {
         emphasize += 2;
       }
-      context.font = `${datum.height * size_adjust + emphasize}pt verdana`;
+      context.font = `bold ${datum.height * size_adjust + emphasize}pt verdana`;
 
       context.shadowBlur = 12 + emphasize * 3;
       context.lineWidth = 3 + emphasize;
@@ -258,7 +269,8 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       context.shadowBlur = 0;
 
       context.lineWidth = 4 + emphasize;
-      context.fillStyle = 'white';
+      // context.fillStyle = 'white';
+      context.fillStyle = datum.properties.color;
       context.fillText(datum.text, x, y);
       /*      context.strokeStyle = 'red';
       context.strokeRect(
