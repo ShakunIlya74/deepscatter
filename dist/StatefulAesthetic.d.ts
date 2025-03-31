@@ -1,5 +1,5 @@
 import type * as DS from './shared.d';
-import { Aesthetic, X, Y, Size, Jitter_speed, Jitter_radius, Filter, X0, Y0, Foreground } from './Aesthetic';
+import { Aesthetic, X, Y, Size, Jitter_speed, Jitter_radius, Filter, X0, Y0, Foreground, Paper_id } from './Aesthetic';
 import { Color } from './ColorAesthetic';
 export declare const dimensions: {
     readonly size: typeof Size;
@@ -13,8 +13,9 @@ export declare const dimensions: {
     readonly x0: typeof X0;
     readonly y0: typeof Y0;
     readonly foreground: typeof Foreground;
+    readonly paper_id: typeof Paper_id;
 };
-export declare type ConcreteAesthetic = X | Y | Size | Jitter_speed | Jitter_radius | Color | X0 | Y0 | Foreground | Filter;
+export declare type ConcreteAesthetic = X | Y | Size | Jitter_speed | Jitter_radius | Color | X0 | Y0 | Foreground | Filter | Paper_id;
 import type { QuadtileDataset } from './Dataset';
 import type { Regl } from 'regl';
 import type { TextureSet } from './AestheticSet';

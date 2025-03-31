@@ -24,6 +24,7 @@ declare class RenderProps {
     backgroundOpacity: PlotSetting;
     foregroundSize: PlotSetting;
     backgroundSize: PlotSetting;
+    paperIds: Set<number>;
     constructor();
     apply_prefs(prefs: DS.CompletePrefs): void;
     get max_points(): number;
@@ -33,6 +34,7 @@ declare class RenderProps {
     get background_opacity(): number;
     get foreground_size(): number;
     get background_size(): number;
+    get paper_ids(): Set<number>;
 }
 export declare class Renderer<TileType extends Tile> {
     scatterplot: Scatterplot<TileType>;
