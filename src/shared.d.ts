@@ -313,6 +313,7 @@ export type LabelOptions = {
   useColorScale?: boolean; // Whether the colors of text should inherit from the active color scale.
   margin?: number; // The number of pixels around each box. Default 30.
   draggable_labels?: boolean; // Should labels be draggable in place?
+  labelClickableAreaFactor?: number; // Factor to scale the clickable area of labels. Default 0.6, height uses half this value.
 };
 
 export type Labelset = {

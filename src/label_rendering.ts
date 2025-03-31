@@ -150,8 +150,8 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
           label = properties[label_key];
         }
         const p: RawPoint = {
-          x: geometry.coordinates[0] + Math.random() * 0.1,
-          y: geometry.coordinates[1] + Math.random() * 0.1,
+          x: geometry.coordinates[0], //+ Math.random() * 0.1
+          y: geometry.coordinates[1], //+ Math.random() * 0.1
           text: label,
           height: size,
           properties: properties,
@@ -258,8 +258,6 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
 
       }
 
-
-
       let emphasize = 0;
       if (this.hovered === '' + d.minZ + d.minX) {
         emphasize = 2;
@@ -283,9 +281,9 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         const b = parseInt(propertyColor.slice(5, 7), 16);
 
         // Make each component darker by reducing by 40%
-        const darkerR = Math.max(0, Math.floor(r * 0.6));
-        const darkerG = Math.max(0, Math.floor(g * 0.6));
-        const darkerB = Math.max(0, Math.floor(b * 0.6));
+        const darkerR = Math.max(0, Math.floor(r * 0.65));
+        const darkerG = Math.max(0, Math.floor(g * 0.65));
+        const darkerB = Math.max(0, Math.floor(b * 0.65));
 
         // Convert back to hex
         darkerColor = `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
@@ -301,9 +299,21 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       const textMetrics = context.measureText(text);
       const textWidth = textMetrics.width;
       const textHeight = fontSize * 1.2; // Approximate height based on font size
+      const initialFontSize = datum.height;
+      // todo: pass these ranges from the be
+      const isL4Label = initialFontSize < 13;
+      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
+      const isL1Label = initialFontSize >= 24;
 
       // Draw background rectangle with padding
-      const padding = fontSize * 0.1; // Dynamic padding based on font size
+      let padding = 0;
+      if (isL4Label || isL3Label) {
+        // For small text (fontSize < 13), add more padding for the yellow glow effect
+        padding = 0;
+      } else {
+        padding = fontSize * 0.1; // Dynamic padding based on font size
+      }
       const rectX = x - textWidth / 2 - padding;
       const rectY = y - textHeight / 2 - padding * 0.8;
       const rectWidth = textWidth + (padding * 2);
@@ -315,14 +325,35 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       // Save context for shadow to only apply to background
       context.save();
 
-      // Add thick shadow of the same color as the rectangle to blur the edges
-      context.shadowColor = "rgba(255, 255, 255, 0.95)";
-      context.shadowBlur = 12 + (emphasize * 3);
-      context.shadowOffsetX = 0;
-      context.shadowOffsetY = 0;
+      // Add yellow glow for small text (fontSize < 13)
+      if (isL4Label) {
+        // Bright yellow background for small text
+        context.fillStyle = "rgba(255, 255, 0, 0.4)"; // Semi-transparent yellow
 
-      // Fill rounded rectangle with semi-transparent white background
-      context.fillStyle = "rgba(255, 255, 255, 0.5)";
+        // Add yellow shadow glow
+        context.shadowColor = "rgba(255, 255, 0, 0.8)";
+        context.shadowBlur = 18;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+      } else if (isL3Label) {
+        // Original white shadow for larger text
+        context.shadowColor = "rgba(255, 255, 255, 0.95)";
+        context.shadowBlur = 12 + (emphasize * 3);
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        // Original white background
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+      } else {
+                // Original white shadow for larger text
+                context.shadowColor = "rgba(255, 255, 255, 1)";
+                context.shadowBlur = 12 + (emphasize * 3);
+                context.shadowOffsetX = 0;
+                context.shadowOffsetY = 0;
+                // Original white background
+                context.fillStyle = "rgba(255, 255, 255, 0.6)";
+      }
+
+      // Draw the rounded rectangle
       context.beginPath();
       context.moveTo(rectX + cornerRadius, rectY);
       context.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -344,13 +375,13 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         context.save();
 
         // Add colored shadow matching original property color
-        context.shadowColor = "rgba(255, 255, 255, 97)";
+        context.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.97)" : "rgba(255, 255, 255, 1)";
         context.shadowBlur = 15;
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
 
         // Redraw the rectangle with the colored shadow
-        context.fillStyle = "rgba(255, 255, 255, 0.1)"; // Slightly more opaque on hover
+        context.fillStyle = isL4Label ? "rgba(255, 255, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
         context.beginPath();
         context.moveTo(rectX + cornerRadius, rectY);
         context.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -367,7 +398,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         context.restore();
 
         // Add white outline around text on hover
-        context.strokeStyle = "white";
+        context.strokeStyle = isL4Label ? "rgba(255, 255, 0, 0.9)" : "white";
         context.lineWidth = 1.5;
         context.lineJoin = "round";
         context.strokeText(text, x, y);
@@ -382,7 +413,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         // Add subtle inner glow
         context.save();
         context.globalAlpha = 0.7;
-        context.shadowColor = propertyColor;
+        context.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.9)" : propertyColor;
         context.shadowBlur = 4;
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
@@ -403,20 +434,35 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       .attr('class', 'labelbbox')
       .attr(
         'x',
-        (d) => x_(d.data.x) - (d.data.pixel_width * this.tree.pixel_ratio) / 2
+        (d) => {
+          // Use the configurable factor or default to 0.6
+          const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+          const width = d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+          return x_(d.data.x) - width / 2;
+        }
       )
       .attr(
         'y',
-        (d) =>
-          y_(d.data.y) -
-          (d.data.pixel_height * this.tree.pixel_ratio) / 2 -
-          Y_BUFFER
+        (d) => {
+          // Use half of the configurable factor or default to 0.3
+          const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+          const height = d.data.pixel_height * this.tree.pixel_ratio * reductionFactor;
+          return y_(d.data.y) - height / 2 - Y_BUFFER;
+        }
       )
-      .attr('width', (d) => d.data.pixel_width * this.tree.pixel_ratio)
+      .attr('width', (d) => {
+        // Use the configurable factor or default to 0.6
+        const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+        return d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+      })
       .attr('stroke', 'red')
       .attr(
         'height',
-        (d) => d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2
+        (d) => {
+          // Use half of the configurable factor or default to 0.3
+          const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+          return (d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2) * reductionFactor;
+        }
       )
       .attr('display', (d) => {
         return d.data.properties.__display || 'inline';

@@ -78,6 +78,7 @@ declare class Scatterplot<T extends Tile> {
      * @param key_field The field in which to look for the identifiers.
      */
     add_identifier_column(name: string, codes: string[] | bigint[] | Record<string, number>, key_field: string): void;
+    add_labels_from_brotli_url(url: string, name: string, label_key: string, size_key: string | undefined, options: DS.LabelOptions): Promise<void>;
     add_labels_from_url(url: string, name: string, label_key: string, size_key: string | undefined, options: DS.LabelOptions): Promise<void>;
     /**
      *

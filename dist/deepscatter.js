@@ -1006,7 +1006,7 @@ function tickStep(start2, stop, count) {
   const reverse = stop < start2, inc2 = reverse ? tickIncrement(stop, start2, count) : tickIncrement(start2, stop, count);
   return (reverse ? -1 : 1) * (inc2 < 0 ? 1 / -inc2 : inc2);
 }
-function max(values, valueof) {
+function max$1(values, valueof) {
   let max2;
   if (valueof === void 0) {
     for (const value of values) {
@@ -6621,9 +6621,9 @@ var regl = {
       var optionalExtensions = [];
       var pixelRatio = typeof window === "undefined" ? 1 : window.devicePixelRatio;
       var profile = false;
-      var onDone = function(err) {
-        if (err) {
-          check$1.raise(err);
+      var onDone = function(err2) {
+        if (err2) {
+          check$1.raise(err2);
         }
       };
       var onDestroy = function() {
@@ -24905,7 +24905,7 @@ function fromNodeStream(stream) {
   return __asyncGenerator(this, arguments, function* fromNodeStream_1() {
     const events = [];
     let event = "error";
-    let done = false, err = null;
+    let done = false, err2 = null;
     let cmd, size, bufferLength = 0;
     let buffers = [], buffer;
     function byteRange() {
@@ -24925,7 +24925,7 @@ function fromNodeStream(stream) {
       events[1] = onEvent(stream, "error");
       do {
         events[2] = onEvent(stream, "readable");
-        [event, err] = yield __await(Promise.race(events.map((x) => x[2])));
+        [event, err2] = yield __await(Promise.race(events.map((x) => x[2])));
         if (event === "error") {
           break;
         }
@@ -24950,10 +24950,10 @@ function fromNodeStream(stream) {
         }
       } while (!done);
     } finally {
-      yield __await(cleanup(events, event === "error" ? err : null));
+      yield __await(cleanup(events, event === "error" ? err2 : null));
     }
     return yield __await(null);
-    function cleanup(events2, err2) {
+    function cleanup(events2, err3) {
       buffer = buffers = null;
       return new Promise((resolve, reject) => {
         for (const [evt, fn] of events2) {
@@ -24961,12 +24961,12 @@ function fromNodeStream(stream) {
         }
         try {
           const destroy = stream["destroy"];
-          destroy && destroy.call(stream, err2);
-          err2 = void 0;
+          destroy && destroy.call(stream, err3);
+          err3 = void 0;
         } catch (e) {
-          err2 = e || err2;
+          err3 = e || err3;
         } finally {
-          err2 != null ? reject(err2) : resolve();
+          err3 != null ? reject(err3) : resolve();
         }
       });
     }
@@ -25253,7 +25253,7 @@ function bigIntToNumber(number2) {
   }
   return Number(number2);
 }
-var _a$3, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+var _a$4, _b$1, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
 class DataType {
   /** @nocollapse */
   static isNull(x) {
@@ -25339,8 +25339,8 @@ class DataType {
     return Type$1.NONE;
   }
 }
-_a$3 = Symbol.toStringTag;
-DataType[_a$3] = ((proto) => {
+_a$4 = Symbol.toStringTag;
+DataType[_a$4] = ((proto) => {
   proto.children = null;
   proto.ArrayType = Array;
   return proto[Symbol.toStringTag] = "DataType";
@@ -25353,8 +25353,8 @@ let Null$1 = class Null extends DataType {
     return Type$1.Null;
   }
 };
-_b = Symbol.toStringTag;
-Null$1[_b] = ((proto) => proto[Symbol.toStringTag] = "Null")(Null$1.prototype);
+_b$1 = Symbol.toStringTag;
+Null$1[_b$1] = ((proto) => proto[Symbol.toStringTag] = "Null")(Null$1.prototype);
 class Int_ extends DataType {
   constructor(isSigned, bitWidth) {
     super();
@@ -27712,7 +27712,7 @@ GetByteLengthVisitor.prototype.visitUnion = getUnionByteLength;
 GetByteLengthVisitor.prototype.visitDenseUnion = getDenseUnionByteLength;
 GetByteLengthVisitor.prototype.visitSparseUnion = getSparseUnionByteLength;
 const instance$3 = new GetByteLengthVisitor();
-var _a$2;
+var _a$3;
 const visitorsByTypeId = {};
 const vectorPrototypesByTypeId = {};
 class Vector {
@@ -27963,8 +27963,8 @@ class Vector {
     return this;
   }
 }
-_a$2 = Symbol.toStringTag;
-Vector[_a$2] = ((proto) => {
+_a$3 = Symbol.toStringTag;
+Vector[_a$3] = ((proto) => {
   proto.type = DataType.prototype;
   proto.data = [];
   proto.length = 0;
@@ -32352,7 +32352,7 @@ function distributeChildren(fields, batchLength, children2, columns, memo) {
   }
   return children2;
 }
-var _a$1;
+var _a$2;
 class Table {
   constructor(...args) {
     var _b2, _c2;
@@ -32620,8 +32620,8 @@ class Table {
     return new Table(...distributeVectorsIntoRecordBatches(schema, columns));
   }
 }
-_a$1 = Symbol.toStringTag;
-Table[_a$1] = ((proto) => {
+_a$2 = Symbol.toStringTag;
+Table[_a$2] = ((proto) => {
   proto.schema = null;
   proto.batches = [];
   proto._offsets = new Uint32Array([0]);
@@ -32634,7 +32634,7 @@ Table[_a$1] = ((proto) => {
   proto["getByteLength"] = wrapChunkedCall1(instance$3.getVisitFn(Type$1.Struct));
   return "Table";
 })(Table.prototype);
-var _a;
+var _a$1;
 let RecordBatch$2 = class RecordBatch {
   constructor(...args) {
     switch (args.length) {
@@ -32839,8 +32839,8 @@ let RecordBatch$2 = class RecordBatch {
     return new RecordBatch(schema, subset);
   }
 };
-_a = Symbol.toStringTag;
-RecordBatch$2[_a] = ((proto) => {
+_a$1 = Symbol.toStringTag;
+RecordBatch$2[_a$1] = ((proto) => {
   proto._nullCount = -1;
   proto[Symbol.isConcatSpreadable] = true;
   return "RecordBatch";
@@ -37095,8 +37095,8 @@ function check_overlap(tile, bbox) {
     return 0;
   }
   const intersection = {
-    x: [max([bbox.x[0], c2.x[0]]), min([bbox.x[1], c2.x[1]])],
-    y: [max([bbox.y[0], c2.y[0]]), min([bbox.y[1], c2.y[1]])]
+    x: [max$1([bbox.x[0], c2.x[0]]), min([bbox.x[1], c2.x[1]])],
+    y: [max$1([bbox.y[0], c2.y[0]]), min([bbox.y[1], c2.y[1]])]
   };
   const { x, y } = intersection;
   let disqualify = 0;
@@ -37945,8 +37945,10 @@ class LabelMaker extends Renderer {
           label = properties[label_key];
         }
         const p = {
-          x: geometry.coordinates[0] + Math.random() * 0.1,
-          y: geometry.coordinates[1] + Math.random() * 0.1,
+          x: geometry.coordinates[0],
+          //+ Math.random() * 0.1
+          y: geometry.coordinates[1],
+          //+ Math.random() * 0.1
           text: label,
           height: size,
           properties
@@ -38031,9 +38033,9 @@ class LabelMaker extends Renderer {
         const r = parseInt(propertyColor.slice(1, 3), 16);
         const g = parseInt(propertyColor.slice(3, 5), 16);
         const b = parseInt(propertyColor.slice(5, 7), 16);
-        const darkerR = Math.max(0, Math.floor(r * 0.6));
-        const darkerG = Math.max(0, Math.floor(g * 0.6));
-        const darkerB = Math.max(0, Math.floor(b * 0.6));
+        const darkerR = Math.max(0, Math.floor(r * 0.65));
+        const darkerG = Math.max(0, Math.floor(g * 0.65));
+        const darkerB = Math.max(0, Math.floor(b * 0.65));
         darkerColor = `#${darkerR.toString(16).padStart(2, "0")}${darkerG.toString(16).padStart(2, "0")}${darkerB.toString(16).padStart(2, "0")}`;
       } catch (e) {
         darkerColor = "#333333";
@@ -38042,18 +38044,40 @@ class LabelMaker extends Renderer {
       const textMetrics = context2.measureText(text);
       const textWidth = textMetrics.width;
       const textHeight = fontSize * 1.2;
-      const padding = fontSize * 0.1;
+      const initialFontSize = datum2.height;
+      const isL4Label = initialFontSize < 13;
+      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      let padding = 0;
+      if (isL4Label || isL3Label) {
+        padding = 0;
+      } else {
+        padding = fontSize * 0.1;
+      }
       const rectX = x - textWidth / 2 - padding;
       const rectY = y - textHeight / 2 - padding * 0.8;
       const rectWidth = textWidth + padding * 2;
       const rectHeight = textHeight + padding * 1.6;
       const cornerRadius = Math.min(rectHeight * 0.5, 10);
       context2.save();
-      context2.shadowColor = "rgba(255, 255, 255, 0.95)";
-      context2.shadowBlur = 12 + emphasize * 3;
-      context2.shadowOffsetX = 0;
-      context2.shadowOffsetY = 0;
-      context2.fillStyle = "rgba(255, 255, 255, 0.5)";
+      if (isL4Label) {
+        context2.fillStyle = "rgba(255, 255, 0, 0.4)";
+        context2.shadowColor = "rgba(255, 255, 0, 0.8)";
+        context2.shadowBlur = 18;
+        context2.shadowOffsetX = 0;
+        context2.shadowOffsetY = 0;
+      } else if (isL3Label) {
+        context2.shadowColor = "rgba(255, 255, 255, 0.95)";
+        context2.shadowBlur = 12 + emphasize * 3;
+        context2.shadowOffsetX = 0;
+        context2.shadowOffsetY = 0;
+        context2.fillStyle = "rgba(255, 255, 255, 0.5)";
+      } else {
+        context2.shadowColor = "rgba(255, 255, 255, 1)";
+        context2.shadowBlur = 12 + emphasize * 3;
+        context2.shadowOffsetX = 0;
+        context2.shadowOffsetY = 0;
+        context2.fillStyle = "rgba(255, 255, 255, 0.6)";
+      }
       context2.beginPath();
       context2.moveTo(rectX + cornerRadius, rectY);
       context2.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -38069,11 +38093,11 @@ class LabelMaker extends Renderer {
       context2.restore();
       if (emphasize > 0) {
         context2.save();
-        context2.shadowColor = "rgba(255, 255, 255, 97)";
+        context2.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.97)" : "rgba(255, 255, 255, 1)";
         context2.shadowBlur = 15;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;
-        context2.fillStyle = "rgba(255, 255, 255, 0.1)";
+        context2.fillStyle = isL4Label ? "rgba(255, 255, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
         context2.beginPath();
         context2.moveTo(rectX + cornerRadius, rectY);
         context2.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -38087,7 +38111,7 @@ class LabelMaker extends Renderer {
         context2.closePath();
         context2.fill();
         context2.restore();
-        context2.strokeStyle = "white";
+        context2.strokeStyle = isL4Label ? "rgba(255, 255, 0, 0.9)" : "white";
         context2.lineWidth = 1.5;
         context2.lineJoin = "round";
         context2.strokeText(text, x, y);
@@ -38097,7 +38121,7 @@ class LabelMaker extends Renderer {
       if (emphasize > 0) {
         context2.save();
         context2.globalAlpha = 0.7;
-        context2.shadowColor = propertyColor;
+        context2.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.9)" : propertyColor;
         context2.shadowBlur = 4;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;
@@ -38108,13 +38132,27 @@ class LabelMaker extends Renderer {
     }
     bboxes.attr("class", "labelbbox").attr(
       "x",
-      (d) => x_(d.data.x) - d.data.pixel_width * this.tree.pixel_ratio / 2
+      (d) => {
+        const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+        const width2 = d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+        return x_(d.data.x) - width2 / 2;
+      }
     ).attr(
       "y",
-      (d) => y_(d.data.y) - d.data.pixel_height * this.tree.pixel_ratio / 2 - Y_BUFFER
-    ).attr("width", (d) => d.data.pixel_width * this.tree.pixel_ratio).attr("stroke", "red").attr(
+      (d) => {
+        const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+        const height2 = d.data.pixel_height * this.tree.pixel_ratio * reductionFactor;
+        return y_(d.data.y) - height2 / 2 - Y_BUFFER;
+      }
+    ).attr("width", (d) => {
+      const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+      return d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+    }).attr("stroke", "red").attr(
       "height",
-      (d) => d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2
+      (d) => {
+        const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+        return (d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2) * reductionFactor;
+      }
     ).attr("display", (d) => {
       return d.data.properties.__display || "inline";
     }).on("mouseover", (event, d) => {
@@ -38881,6 +38919,390 @@ function createDictionaryWithVector(labelsArrow, indices) {
   });
   return returnval;
 }
+var u8 = Uint8Array, u16 = Uint16Array, i32 = Int32Array;
+var fleb = new u8([
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  1,
+  2,
+  2,
+  2,
+  2,
+  3,
+  3,
+  3,
+  3,
+  4,
+  4,
+  4,
+  4,
+  5,
+  5,
+  5,
+  5,
+  0,
+  /* unused */
+  0,
+  0,
+  /* impossible */
+  0
+]);
+var fdeb = new u8([
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  2,
+  2,
+  3,
+  3,
+  4,
+  4,
+  5,
+  5,
+  6,
+  6,
+  7,
+  7,
+  8,
+  8,
+  9,
+  9,
+  10,
+  10,
+  11,
+  11,
+  12,
+  12,
+  13,
+  13,
+  /* unused */
+  0,
+  0
+]);
+var clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+var freb = function(eb, start2) {
+  var b = new u16(31);
+  for (var i = 0; i < 31; ++i) {
+    b[i] = start2 += 1 << eb[i - 1];
+  }
+  var r = new i32(b[30]);
+  for (var i = 1; i < 30; ++i) {
+    for (var j = b[i]; j < b[i + 1]; ++j) {
+      r[j] = j - b[i] << 5 | i;
+    }
+  }
+  return { b, r };
+};
+var _a = freb(fleb, 2), fl = _a.b, revfl = _a.r;
+fl[28] = 258, revfl[258] = 28;
+var _b = freb(fdeb, 0), fd = _b.b;
+var rev = new u16(32768);
+for (var i = 0; i < 32768; ++i) {
+  var x = (i & 43690) >> 1 | (i & 21845) << 1;
+  x = (x & 52428) >> 2 | (x & 13107) << 2;
+  x = (x & 61680) >> 4 | (x & 3855) << 4;
+  rev[i] = ((x & 65280) >> 8 | (x & 255) << 8) >> 1;
+}
+var hMap = function(cd, mb, r) {
+  var s = cd.length;
+  var i = 0;
+  var l = new u16(mb);
+  for (; i < s; ++i) {
+    if (cd[i])
+      ++l[cd[i] - 1];
+  }
+  var le = new u16(mb);
+  for (i = 1; i < mb; ++i) {
+    le[i] = le[i - 1] + l[i - 1] << 1;
+  }
+  var co;
+  if (r) {
+    co = new u16(1 << mb);
+    var rvb = 15 - mb;
+    for (i = 0; i < s; ++i) {
+      if (cd[i]) {
+        var sv = i << 4 | cd[i];
+        var r_1 = mb - cd[i];
+        var v = le[cd[i] - 1]++ << r_1;
+        for (var m = v | (1 << r_1) - 1; v <= m; ++v) {
+          co[rev[v] >> rvb] = sv;
+        }
+      }
+    }
+  } else {
+    co = new u16(s);
+    for (i = 0; i < s; ++i) {
+      if (cd[i]) {
+        co[i] = rev[le[cd[i] - 1]++] >> 15 - cd[i];
+      }
+    }
+  }
+  return co;
+};
+var flt = new u8(288);
+for (var i = 0; i < 144; ++i)
+  flt[i] = 8;
+for (var i = 144; i < 256; ++i)
+  flt[i] = 9;
+for (var i = 256; i < 280; ++i)
+  flt[i] = 7;
+for (var i = 280; i < 288; ++i)
+  flt[i] = 8;
+var fdt = new u8(32);
+for (var i = 0; i < 32; ++i)
+  fdt[i] = 5;
+var flrm = /* @__PURE__ */ hMap(flt, 9, 1);
+var fdrm = /* @__PURE__ */ hMap(fdt, 5, 1);
+var max = function(a) {
+  var m = a[0];
+  for (var i = 1; i < a.length; ++i) {
+    if (a[i] > m)
+      m = a[i];
+  }
+  return m;
+};
+var bits = function(d, p, m) {
+  var o = p / 8 | 0;
+  return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
+};
+var bits16 = function(d, p) {
+  var o = p / 8 | 0;
+  return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
+};
+var shft = function(p) {
+  return (p + 7) / 8 | 0;
+};
+var slc = function(v, s, e) {
+  if (s == null || s < 0)
+    s = 0;
+  if (e == null || e > v.length)
+    e = v.length;
+  return new u8(v.subarray(s, e));
+};
+var ec = [
+  "unexpected EOF",
+  "invalid block type",
+  "invalid length/literal",
+  "invalid distance",
+  "stream finished",
+  "no stream handler",
+  ,
+  "no callback",
+  "invalid UTF-8 data",
+  "extra field too long",
+  "date not in range 1980-2099",
+  "filename too long",
+  "stream finishing",
+  "invalid zip data"
+  // determined by unknown compression method
+];
+var err = function(ind, msg, nt) {
+  var e = new Error(msg || ec[ind]);
+  e.code = ind;
+  if (Error.captureStackTrace)
+    Error.captureStackTrace(e, err);
+  if (!nt)
+    throw e;
+  return e;
+};
+var inflt = function(dat, st, buf, dict) {
+  var sl = dat.length, dl = dict ? dict.length : 0;
+  if (!sl || st.f && !st.l)
+    return buf || new u8(0);
+  var noBuf = !buf;
+  var resize = noBuf || st.i != 2;
+  var noSt = st.i;
+  if (noBuf)
+    buf = new u8(sl * 3);
+  var cbuf = function(l2) {
+    var bl = buf.length;
+    if (l2 > bl) {
+      var nbuf = new u8(Math.max(bl * 2, l2));
+      nbuf.set(buf);
+      buf = nbuf;
+    }
+  };
+  var final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+  var tbts = sl * 8;
+  do {
+    if (!lm) {
+      final = bits(dat, pos, 1);
+      var type = bits(dat, pos + 1, 3);
+      pos += 3;
+      if (!type) {
+        var s = shft(pos) + 4, l = dat[s - 4] | dat[s - 3] << 8, t = s + l;
+        if (t > sl) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (resize)
+          cbuf(bt + l);
+        buf.set(dat.subarray(s, t), bt);
+        st.b = bt += l, st.p = pos = t * 8, st.f = final;
+        continue;
+      } else if (type == 1)
+        lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
+      else if (type == 2) {
+        var hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
+        var tl = hLit + bits(dat, pos + 5, 31) + 1;
+        pos += 14;
+        var ldt = new u8(tl);
+        var clt = new u8(19);
+        for (var i = 0; i < hcLen; ++i) {
+          clt[clim[i]] = bits(dat, pos + i * 3, 7);
+        }
+        pos += hcLen * 3;
+        var clb = max(clt), clbmsk = (1 << clb) - 1;
+        var clm = hMap(clt, clb, 1);
+        for (var i = 0; i < tl; ) {
+          var r = clm[bits(dat, pos, clbmsk)];
+          pos += r & 15;
+          var s = r >> 4;
+          if (s < 16) {
+            ldt[i++] = s;
+          } else {
+            var c2 = 0, n = 0;
+            if (s == 16)
+              n = 3 + bits(dat, pos, 3), pos += 2, c2 = ldt[i - 1];
+            else if (s == 17)
+              n = 3 + bits(dat, pos, 7), pos += 3;
+            else if (s == 18)
+              n = 11 + bits(dat, pos, 127), pos += 7;
+            while (n--)
+              ldt[i++] = c2;
+          }
+        }
+        var lt = ldt.subarray(0, hLit), dt = ldt.subarray(hLit);
+        lbt = max(lt);
+        dbt = max(dt);
+        lm = hMap(lt, lbt, 1);
+        dm = hMap(dt, dbt, 1);
+      } else
+        err(1);
+      if (pos > tbts) {
+        if (noSt)
+          err(0);
+        break;
+      }
+    }
+    if (resize)
+      cbuf(bt + 131072);
+    var lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
+    var lpos = pos;
+    for (; ; lpos = pos) {
+      var c2 = lm[bits16(dat, pos) & lms], sym = c2 >> 4;
+      pos += c2 & 15;
+      if (pos > tbts) {
+        if (noSt)
+          err(0);
+        break;
+      }
+      if (!c2)
+        err(2);
+      if (sym < 256)
+        buf[bt++] = sym;
+      else if (sym == 256) {
+        lpos = pos, lm = null;
+        break;
+      } else {
+        var add = sym - 254;
+        if (sym > 264) {
+          var i = sym - 257, b = fleb[i];
+          add = bits(dat, pos, (1 << b) - 1) + fl[i];
+          pos += b;
+        }
+        var d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
+        if (!d)
+          err(3);
+        pos += d & 15;
+        var dt = fd[dsym];
+        if (dsym > 3) {
+          var b = fdeb[dsym];
+          dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
+        }
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (resize)
+          cbuf(bt + 131072);
+        var end = bt + add;
+        if (bt < dt) {
+          var shift = dl - dt, dend = Math.min(dt, end);
+          if (shift + bt < 0)
+            err(3);
+          for (; bt < dend; ++bt)
+            buf[bt] = dict[shift + bt];
+        }
+        for (; bt < end; ++bt)
+          buf[bt] = buf[bt - dt];
+      }
+    }
+    st.l = lm, st.p = lpos, st.b = bt, st.f = final;
+    if (lm)
+      final = 1, st.m = lbt, st.d = dm, st.n = dbt;
+  } while (!final);
+  return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+};
+var et = /* @__PURE__ */ new u8(0);
+var gzs = function(d) {
+  if (d[0] != 31 || d[1] != 139 || d[2] != 8)
+    err(6, "invalid gzip data");
+  var flg = d[3];
+  var st = 10;
+  if (flg & 4)
+    st += (d[10] | d[11] << 8) + 2;
+  for (var zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= !d[st++])
+    ;
+  return st + (flg & 2);
+};
+var gzl = function(d) {
+  var l = d.length;
+  return (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16 | d[l - 1] << 24) >>> 0;
+};
+var zls = function(d, dict) {
+  if ((d[0] & 15) != 8 || d[0] >> 4 > 7 || (d[0] << 8 | d[1]) % 31)
+    err(6, "invalid zlib data");
+  if ((d[1] >> 5 & 1) == +!dict)
+    err(6, "invalid zlib data: " + (d[1] & 32 ? "need" : "unexpected") + " dictionary");
+  return (d[1] >> 3 & 4) + 2;
+};
+function inflateSync(data, opts) {
+  return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
+}
+function gunzipSync(data, opts) {
+  var st = gzs(data);
+  if (st + 8 > data.length)
+    err(6, "invalid gzip data");
+  return inflt(data.subarray(st, -8), { i: 2 }, opts && opts.out || new u8(gzl(data)), opts && opts.dictionary);
+}
+function unzlibSync(data, opts) {
+  return inflt(data.subarray(zls(data, opts && opts.dictionary), -4), { i: 2 }, opts && opts.out, opts && opts.dictionary);
+}
+function decompressSync(data, opts) {
+  return data[0] == 31 && data[1] == 139 && data[2] == 8 ? gunzipSync(data, opts) : (data[0] & 15) != 8 || data[0] >> 4 > 7 || (data[0] << 8 | data[1]) % 31 ? inflateSync(data, opts) : unzlibSync(data, opts);
+}
+var td = typeof TextDecoder != "undefined" && /* @__PURE__ */ new TextDecoder();
+var tds = 0;
+try {
+  td.decode(et, { stream: true });
+  tds = 1;
+} catch (e) {
+}
 const default_background_options = {
   color: "gray",
   opacity: [0.2, 1],
@@ -39037,6 +39459,20 @@ class Scatterplot {
   add_identifier_column(name, codes, key_field) {
     const true_codes = Array.isArray(codes) ? Object.fromEntries(codes.map((next) => [next, 1])) : codes;
     this._root.add_label_identifiers(true_codes, name, key_field);
+  }
+  async add_labels_from_brotli_url(url, name, label_key, size_key, options) {
+    await this.ready;
+    await this._root.promise;
+    return fetch(url).then(async (res) => {
+      const compressed = new Uint8Array(await res.arrayBuffer());
+      const decompressed = decompressSync(compressed);
+      const jsonStr = new TextDecoder().decode(decompressed);
+      const features = JSON.parse(jsonStr);
+      this.add_labels(features, name, label_key, size_key, options);
+    }).catch((error) => {
+      console.warn(error);
+      console.error("Broken addition of ", name);
+    });
   }
   async add_labels_from_url(url, name, label_key, size_key, options) {
     await this.ready;
@@ -39526,7 +39962,7 @@ class Scatterplot {
       context2.fillRect(0, 0, window.innerWidth * 2, window.innerHeight * 2);
       context2.strokeStyle = "#8a0303";
       context2.fillStyle = "rgba(30, 30, 34, 1)";
-      context2.lineWidth = max([
+      context2.lineWidth = max$1([
         0.45,
         0.25 * Math.exp(Math.log(this._zoom.transform.k / 2))
       ]);
