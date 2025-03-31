@@ -38031,7 +38031,16 @@ class LabelMaker extends Renderer {
       }
       const text = datum2.text;
       const fontSize = Math.round(datum2.height * size_adjust * this.options.fontSizeFactor);
-      context2.font = `${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
+      const initialFontSize = datum2.height;
+      const isL4Label = initialFontSize < 13;
+      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      const isL1Label = initialFontSize >= 24;
+      let fontWeight = "normal";
+      if (isL1Label || isL4Label) {
+        const l1FontWeight = "600";
+        fontWeight = isL1Label ? l1FontWeight : "bold";
+      }
+      context2.font = `${fontWeight} ${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
       const propertyColor = datum2.properties.color || "#666666";
       let darkerColor = propertyColor;
       try {
@@ -38049,9 +38058,6 @@ class LabelMaker extends Renderer {
       const textMetrics = context2.measureText(text);
       const textWidth = textMetrics.width;
       const textHeight = fontSize * 1.2;
-      const initialFontSize = datum2.height;
-      const isL4Label = initialFontSize < 13;
-      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
       let padding = 0;
       if (isL4Label || isL3Label) {
         padding = 0;
@@ -38065,13 +38071,13 @@ class LabelMaker extends Renderer {
       const cornerRadius = Math.min(rectHeight * 0.5, 10);
       context2.save();
       if (isL4Label) {
-        context2.fillStyle = "rgba(255, 255, 0, 0.4)";
-        context2.shadowColor = "rgba(255, 255, 0, 0.8)";
-        context2.shadowBlur = 18;
+        context2.shadowColor = "rgba(255, 255, 255, 0.97)";
+        context2.shadowBlur = 10;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;
+        context2.fillStyle = "rgba(255, 255, 255, 0.5)";
       } else if (isL3Label) {
-        context2.shadowColor = "rgba(255, 255, 255, 0.95)";
+        context2.shadowColor = "rgba(255, 255, 255, 0.97)";
         context2.shadowBlur = 12 + emphasize * 3;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;
@@ -38098,11 +38104,11 @@ class LabelMaker extends Renderer {
       context2.restore();
       if (emphasize > 0) {
         context2.save();
-        context2.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.97)" : "rgba(255, 255, 255, 1)";
+        context2.shadowColor = "rgba(255, 255, 255, 1)";
         context2.shadowBlur = 15;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;
-        context2.fillStyle = isL4Label ? "rgba(255, 255, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
+        context2.fillStyle = "rgba(255, 255, 255, 0.1)";
         context2.beginPath();
         context2.moveTo(rectX + cornerRadius, rectY);
         context2.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -38116,7 +38122,7 @@ class LabelMaker extends Renderer {
         context2.closePath();
         context2.fill();
         context2.restore();
-        context2.strokeStyle = isL4Label ? "rgba(255, 255, 0, 0.9)" : "white";
+        context2.strokeStyle = "white";
         context2.lineWidth = 1.5;
         context2.lineJoin = "round";
         context2.strokeText(text, x, y);
@@ -38126,7 +38132,7 @@ class LabelMaker extends Renderer {
       if (emphasize > 0) {
         context2.save();
         context2.globalAlpha = 0.7;
-        context2.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.9)" : propertyColor;
+        context2.shadowColor = propertyColor;
         context2.shadowBlur = 4;
         context2.shadowOffsetX = 0;
         context2.shadowOffsetY = 0;

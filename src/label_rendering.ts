@@ -276,8 +276,24 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       // Store the original text for measurement
       const text = datum.text;
       const fontSize = Math.round(datum.height * size_adjust * this.options.fontSizeFactor);
-      // Use a more modern font stack
-      context.font = `${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
+
+      const initialFontSize = datum.height;
+      // todo: pass these ranges from the be
+      const isL4Label = initialFontSize < 13;
+      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
+      const isL1Label = initialFontSize >= 24;
+      
+      // Determine font weight based on label level
+      let fontWeight = 'normal';
+      // L1 and L4 labels should be bold
+      if (isL1Label || isL4Label) {
+        const l1FontWeight = '600';
+        fontWeight = isL1Label ? (l1FontWeight || 'bold') : 'bold';
+      }
+      
+      // Use a more modern font stack with appropriate weight
+      context.font = `${fontWeight} ${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
 
       // Get color from properties
       const propertyColor = datum.properties.color || "#666666"; // Default to gray if no color
@@ -309,17 +325,12 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       const textMetrics = context.measureText(text);
       const textWidth = textMetrics.width;
       const textHeight = fontSize * 1.2; // Approximate height based on font size
-      const initialFontSize = datum.height;
-      // todo: pass these ranges from the be
-      const isL4Label = initialFontSize < 13;
-      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
-      const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
-      const isL1Label = initialFontSize >= 24;
+
 
       // Draw background rectangle with padding
       let padding = 0;
       if (isL4Label || isL3Label) {
-        // For small text (fontSize < 13), add more padding for the yellow glow effect
+        // For small text, minimal padding
         padding = 0;
       } else {
         padding = fontSize * 0.1; // Dynamic padding based on font size
@@ -335,32 +346,31 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       // Save context for shadow to only apply to background
       context.save();
 
-      // Add yellow glow for small text (fontSize < 13)
+      // Replace yellow glow for L4 labels with consistent styling
       if (isL4Label) {
-        // Bright yellow background for small text
-        context.fillStyle = "rgba(255, 255, 0, 0.4)"; // Semi-transparent yellow
-
-        // Add yellow shadow glow
-        context.shadowColor = "rgba(255, 255, 0, 0.8)";
-        context.shadowBlur = 18;
+        // White shadow but with lower intensity for L4 labels
+        context.shadowColor = "rgba(255, 255, 255, 0.97)";
+        context.shadowBlur = 10;
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
+        // Subtle white background
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
       } else if (isL3Label) {
-        // Original white shadow for larger text
-        context.shadowColor = "rgba(255, 255, 255, 0.95)";
+        // Original white shadow for L3 text
+        context.shadowColor = "rgba(255, 255, 255, 0.97)";
         context.shadowBlur = 12 + (emphasize * 3);
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
         // Original white background
         context.fillStyle = "rgba(255, 255, 255, 0.5)";
       } else {
-                // Original white shadow for larger text
-                context.shadowColor = "rgba(255, 255, 255, 1)";
-                context.shadowBlur = 12 + (emphasize * 3);
-                context.shadowOffsetX = 0;
-                context.shadowOffsetY = 0;
-                // Original white background
-                context.fillStyle = "rgba(255, 255, 255, 0.6)";
+        // Original white shadow for larger text
+        context.shadowColor = "rgba(255, 255, 255, 1)";
+        context.shadowBlur = 12 + (emphasize * 3);
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        // Original white background
+        context.fillStyle = "rgba(255, 255, 255, 0.6)";
       }
 
       // Draw the rounded rectangle
@@ -384,14 +394,14 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       if (emphasize > 0) {
         context.save();
 
-        // Add colored shadow matching original property color
-        context.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.97)" : "rgba(255, 255, 255, 1)";
+        // Add white shadow for all label types on hover
+        context.shadowColor = "rgba(255, 255, 255, 1)";
         context.shadowBlur = 15;
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
 
-        // Redraw the rectangle with the colored shadow
-        context.fillStyle = isL4Label ? "rgba(255, 255, 0, 0.2)" : "rgba(255, 255, 255, 0.1)";
+        // Redraw the rectangle with the shadow
+        context.fillStyle = "rgba(255, 255, 255, 0.1)";
         context.beginPath();
         context.moveTo(rectX + cornerRadius, rectY);
         context.lineTo(rectX + rectWidth - cornerRadius, rectY);
@@ -408,7 +418,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         context.restore();
 
         // Add white outline around text on hover
-        context.strokeStyle = isL4Label ? "rgba(255, 255, 0, 0.9)" : "white";
+        context.strokeStyle = "white";
         context.lineWidth = 1.5;
         context.lineJoin = "round";
         context.strokeText(text, x, y);
@@ -423,7 +433,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         // Add subtle inner glow
         context.save();
         context.globalAlpha = 0.7;
-        context.shadowColor = isL4Label ? "rgba(255, 255, 0, 0.9)" : propertyColor;
+        context.shadowColor = propertyColor;
         context.shadowBlur = 4;
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
