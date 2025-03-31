@@ -65,18 +65,21 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
     }
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
 
+    // Get size-to-zoom factor from options if provided
+    const sizeToZoomFactor = options.sizeToZoomFactor !== undefined ? options.sizeToZoomFactor : 1.0;
+    const maxSizeThreshold = options.maxSizeThreshold !== undefined ? options.maxSizeThreshold : 100;
+    const fontSizeFactor = options.fontSizeFactor !== undefined ? options.fontSizeFactor : 1.0;
+
     this.tree = new DepthTree(
       this.ctx,
       pixel_ratio(scatterplot),
       0.5,
       [0.5, 1e6],
-      options.margin === undefined ? 30 : options.margin
+      options.margin === undefined ? 30 : options.margin,
+      sizeToZoomFactor,
+      maxSizeThreshold,
     );
 
-    /*    this.tree.accessor = (x, y) => {
-      const f = scatterplot._zoom.scales();
-      return [f.x(x), f.y(y)];
-    };*/
     this.bind_zoom(scatterplot._renderer.zoom);
   }
 
@@ -147,8 +150,8 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
           label = properties[label_key];
         }
         const p: RawPoint = {
-          x: geometry.coordinates[0] + Math.random() * 0.1,
-          y: geometry.coordinates[1] + Math.random() * 0.1,
+          x: geometry.coordinates[0], //+ Math.random() * 0.1
+          y: geometry.coordinates[1], //+ Math.random() * 0.1
           text: label,
           height: size,
           properties: properties,
@@ -180,13 +183,20 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       maxZ: transform.k,
     });
 
-    //    context.fillStyle = "rgba(0, 0, 0, 0)";
+    // Sort overlaps by height (smallest to largest) so larger labels appear on top
+    const sortedOverlaps = [...overlaps].sort((a, b) => {
+      const heightA = (a.data as RawPoint).height || 0;
+      const heightB = (b.data as RawPoint).height || 0; 
+      return heightA - heightB; // Ascending order: small to large
+    });
+
+    //  context.fillStyle = "rgba(0, 0, 0, 0)";
     context.clearRect(0, 0, 4096, 4096);
     const dim = this.scatterplot.dim('color');
     const bboxes = select(this.labelgroup)
       .selectAll('rect.labelbbox')
       // Keyed by the coordinates.
-      .data(overlaps, (d) => '' + d.minZ + d.minX)
+      .data(sortedOverlaps, (d) => '' + d.minZ + d.minX)
       .join((enter) =>
         enter
           .append('rect')
@@ -199,13 +209,14 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
     const Y_BUFFER = 5;
 
     // Go through and draw the canvas events.
-    for (const d of overlaps) {
+    // Use sortedOverlaps instead of overlaps for drawing
+    for (const d of sortedOverlaps) {
       const datum = d.data as RawPoint;
       const x = x_(datum.x) as number;
       const y = y_(datum.y) as number;
 
       context.globalAlpha = 1;
-      context.fillStyle = 'white';
+      // context.fillStyle = 'white';
       let mark_hidden = false;
       for (const filter of [
         this.scatterplot.dim('filter'),
@@ -231,33 +242,210 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       ) {
         context.shadowColor = '#71797E';
         context.strokeStyle = '#71797E';
+        // console.log('hehe0', dim.scale.domain(), this.options, this.options.useColorScale, datum.properties, dim.field);
+        console.log('useColorScale:', this.options.useColorScale);
       } else if (datum.properties[dim.field]) {
         const exists =
           dim.scale.domain().indexOf(datum.properties[dim.field]) > -1;
         if (exists) {
+          // console.log('hehe1', exists, dim.scale.domain());
           context.shadowColor = dim.scale(datum.properties[dim.field]);
           context.strokeStyle = dim.scale(datum.properties[dim.field]);
         } else {
+          // console.log('hehe2', exists, dim.scale.domain());
           context.shadowColor = 'gray';
           context.strokeStyle = 'gray';
         }
       } else {
-        context.shadowColor = 'black';
+        // console.log('hehe3', dim.scale.domain(), this.options.useColorScale, datum.properties, dim.field);
+        // console.log("properties", datum.properties, datum.properties[dim.field], dim.field);
+        // console.log(datum.properties.color);
+        context.shadowColor = "white";
+
+        // context.shadowColor = 'black';
+
       }
+
+      // labels style part below
+
       let emphasize = 0;
       if (this.hovered === '' + d.minZ + d.minX) {
-        emphasize += 2;
+        emphasize = 2;
       }
-      context.font = `${datum.height * size_adjust + emphasize}pt verdana`;
 
-      context.shadowBlur = 12 + emphasize * 3;
-      context.lineWidth = 3 + emphasize;
-      context.strokeText(datum.text, x, y);
-      context.shadowBlur = 0;
+      // Store the original text for measurement
+      const text = datum.text;
+      const fontSize = Math.round(datum.height * size_adjust * this.options.fontSizeFactor);
 
-      context.lineWidth = 4 + emphasize;
-      context.fillStyle = 'white';
-      context.fillText(datum.text, x, y);
+      const initialFontSize = datum.height;
+      // todo: pass these ranges from the be
+      const isL4Label = initialFontSize < 13;
+      const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
+      const isL1Label = initialFontSize >= 24;
+      
+      // Determine font weight based on label level
+      let fontWeight = 'normal';
+      // L1 and L4 labels should be bold
+      if (isL1Label || isL4Label) {
+        const l1FontWeight = '600';
+        fontWeight = isL1Label ? (l1FontWeight || 'bold') : 'bold';
+      }
+      
+      // Use a more modern font stack with appropriate weight
+      context.font = `${fontWeight} ${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
+
+      // Get color from properties
+      const propertyColor = datum.properties.color || "#666666"; // Default to gray if no color
+
+      // Create darker version of the property color for text
+      let darkerColor = propertyColor;
+      try {
+        // Convert hex to RGB, make it darker, then back to hex
+        const r = parseInt(propertyColor.slice(1, 3), 16);
+        const g = parseInt(propertyColor.slice(3, 5), 16);
+        const b = parseInt(propertyColor.slice(5, 7), 16);
+
+        // Make each component darker by reducing by 40%
+        const darkerR = Math.max(0, Math.floor(r * 0.65));
+        const darkerG = Math.max(0, Math.floor(g * 0.65));
+        const darkerB = Math.max(0, Math.floor(b * 0.65));
+
+        // Convert back to hex
+        darkerColor = `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
+      } catch (e) {
+        // Fallback to dark gray if conversion fails
+        darkerColor = "#333333";
+      }
+
+      // Default text color is the darker version
+      let textColor = darkerColor;
+
+      // Measure text dimensions
+      const textMetrics = context.measureText(text);
+      const textWidth = textMetrics.width;
+      const textHeight = fontSize * 1.2; // Approximate height based on font size
+
+
+      // Draw background rectangle with padding
+      let padding = 0;
+      if (isL4Label || isL3Label) {
+        // For small text, minimal padding
+        padding = 0;
+      } else {
+        padding = fontSize * 0.1; // Dynamic padding based on font size
+      }
+      const rectX = x - textWidth / 2 - padding;
+      const rectY = y - textHeight / 2 - padding * 0.8;
+      const rectWidth = textWidth + (padding * 2);
+      const rectHeight = textHeight + (padding * 1.6);
+
+      // Set border radius for rounded corners - proportional to font size
+      const cornerRadius = Math.min(rectHeight * 0.5, 10);
+
+      // Save context for shadow to only apply to background
+      context.save();
+
+      // Replace yellow glow for L4 labels with consistent styling
+      if (isL4Label) {
+        // White shadow but with lower intensity for L4 labels
+        context.shadowColor = "rgba(255, 255, 255, 0.97)";
+        context.shadowBlur = 10;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        // Subtle white background
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+      } else if (isL3Label) {
+        // Original white shadow for L3 text
+        context.shadowColor = "rgba(255, 255, 255, 0.97)";
+        context.shadowBlur = 12 + (emphasize * 3);
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        // Original white background
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+      } else {
+        // Original white shadow for larger text
+        context.shadowColor = "rgba(255, 255, 255, 1)";
+        context.shadowBlur = 12 + (emphasize * 3);
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        // Original white background
+        context.fillStyle = "rgba(255, 255, 255, 0.6)";
+      }
+
+      // Draw the rounded rectangle
+      context.beginPath();
+      context.moveTo(rectX + cornerRadius, rectY);
+      context.lineTo(rectX + rectWidth - cornerRadius, rectY);
+      context.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+      context.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+      context.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+      context.lineTo(rectX + cornerRadius, rectY + rectHeight);
+      context.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+      context.lineTo(rectX, rectY + cornerRadius);
+      context.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+      context.closePath();
+      context.fill();
+
+      // Restore context to remove shadow for text
+      context.restore();
+
+      // On hover: Add colored shadow to the rectangle
+      if (emphasize > 0) {
+        context.save();
+
+        // Add white shadow for all label types on hover
+        context.shadowColor = "rgba(255, 255, 255, 1)";
+        context.shadowBlur = 15;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+
+        // Redraw the rectangle with the shadow
+        context.fillStyle = "rgba(255, 255, 255, 0.1)";
+        context.beginPath();
+        context.moveTo(rectX + cornerRadius, rectY);
+        context.lineTo(rectX + rectWidth - cornerRadius, rectY);
+        context.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius, cornerRadius);
+        context.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+        context.arcTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight, cornerRadius);
+        context.lineTo(rectX + cornerRadius, rectY + rectHeight);
+        context.arcTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius, cornerRadius);
+        context.lineTo(rectX, rectY + cornerRadius);
+        context.arcTo(rectX, rectY, rectX + cornerRadius, rectY, cornerRadius);
+        context.closePath();
+        context.fill();
+
+        context.restore();
+
+        // Add white outline around text on hover
+        context.strokeStyle = "white";
+        context.lineWidth = 1.5;
+        context.lineJoin = "round";
+        context.strokeText(text, x, y);
+      }
+
+      // Draw the actual text with darker property color
+      context.fillStyle = textColor;
+      context.fillText(text, x, y);
+
+      // Additional highlight on hover
+      if (emphasize > 0) {
+        // Add subtle inner glow
+        context.save();
+        context.globalAlpha = 0.7;
+        context.shadowColor = propertyColor;
+        context.shadowBlur = 4;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        context.fillStyle = textColor;
+        context.fillText(text, x, y);
+        context.restore();
+      }
+
+
+
+
+
       /*      context.strokeStyle = 'red';
       context.strokeRect(
         x - (datum.pixel_width / 2) * this.tree.pixel_ratio,
@@ -271,20 +459,35 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       .attr('class', 'labelbbox')
       .attr(
         'x',
-        (d) => x_(d.data.x) - (d.data.pixel_width * this.tree.pixel_ratio) / 2
+        (d) => {
+          // Use the configurable factor or default to 0.6
+          const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+          const width = d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+          return x_(d.data.x) - width / 2;
+        }
       )
       .attr(
         'y',
-        (d) =>
-          y_(d.data.y) -
-          (d.data.pixel_height * this.tree.pixel_ratio) / 2 -
-          Y_BUFFER
+        (d) => {
+          // Use half of the configurable factor or default to 0.3
+          const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+          const height = d.data.pixel_height * this.tree.pixel_ratio * reductionFactor;
+          return y_(d.data.y) - height / 2 - Y_BUFFER;
+        }
       )
-      .attr('width', (d) => d.data.pixel_width * this.tree.pixel_ratio)
+      .attr('width', (d) => {
+        // Use the configurable factor or default to 0.6
+        const reductionFactor = this.options.labelClickableAreaFactor || 0.6;
+        return d.data.pixel_width * this.tree.pixel_ratio * reductionFactor;
+      })
       .attr('stroke', 'red')
       .attr(
         'height',
-        (d) => d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2
+        (d) => {
+          // Use half of the configurable factor or default to 0.3
+          const reductionFactor = (this.options.labelClickableAreaFactor || 0.6) * 0.5;
+          return (d.data.pixel_height * this.tree.pixel_ratio + Y_BUFFER * 2) * reductionFactor;
+        }
       )
       .attr('display', (d) => {
         return d.data.properties.__display || 'inline';
@@ -428,24 +631,23 @@ class DepthTree extends RBush3D {
   public pixel_ratio: number;
   public rectangle_buffer: number;
   public margin: number;
-  //  public insertion_log = [];
   private _accessor: (p: Point) => [number, number] = (p) => [p.x, p.y];
 
-  /*
-  dataSpaceWidth: at zoom level one, how many screen pixels does one x, y unit occupy?
-  */
+  // Add a property to control how size affects zoom level
+  public sizeToZoomFactor: number = 1.0;
+  // Use maxSizeThreshold to normalize sizes
+  public maxSizeThreshold: number = 100;
+  public fontSizeFactor: number = 1.0;
 
   constructor(
     context: CanvasRenderingContext2D,
     pixel_ratio: number,
     scale_factor = 0.5,
     zoom = [0.1, 1000],
-    margin = 10 // in screen pixels
+    margin = 10, // in screen pixels
+    sizeToZoomFactor = 1.0,
+    maxSizeThreshold = 100,
   ) {
-    // scale factor used to determine how quickly points scale.
-    // Not implemented.
-    // size = exp(log(k) * scale_factor);
-
     super();
     this.scale_factor = scale_factor;
     this.mindepth = zoom[0];
@@ -453,7 +655,10 @@ class DepthTree extends RBush3D {
     this.context = context;
     this.pixel_ratio = pixel_ratio;
     this.margin = margin;
+    this.sizeToZoomFactor = sizeToZoomFactor;
+    this.maxSizeThreshold = maxSizeThreshold;
   }
+
 
   /**
    *
@@ -513,10 +718,31 @@ class DepthTree extends RBush3D {
     return p;
   }
 
+  // Calculate zoom level directly from point size
+  calculateZoomLevel(pointSize: number): number {
+    // Normalize size between 0 and 1 based on maxSizeThreshold
+    // Smaller sizes will be closer to 0, larger sizes closer to 1
+    const normalizedSize = Math.min(pointSize / this.maxSizeThreshold, 1.0);
+
+    // Convert the normalized size to a zoom level
+    // - Smaller points appear at higher zoom levels (more zoomed in)
+    // - Larger points appear at lower zoom levels (more zoomed out)
+    // - margin is used as the maximum zoom depth (most zoomed in)
+
+    // Map normalized size to a zoom level between margin (zoomed in) and mindepth (zoomed out)
+    const zoomRange = this.margin - this.mindepth;
+    const zoomLevel = this.margin - (normalizedSize * zoomRange * this.sizeToZoomFactor);
+
+    // Ensure zoom level stays within bounds
+    return Math.max(this.mindepth, Math.min(zoomLevel, this.margin));
+  }
+
+  // Modified insert_point method to use size-based zoom level
   insert_point(point: RawPoint | Point, mindepth = 1 / 4) {
     if (point.text === undefined || point.text === '') {
       return;
     }
+
     let measured: Point;
     if (point['pixel_width'] === undefined) {
       measured = {
@@ -526,21 +752,15 @@ class DepthTree extends RBush3D {
     } else {
       measured = point;
     }
-    const p3d = this.to3d(measured, mindepth, this.maxdepth);
-    if (!this.collides(p3d)) {
-      if (mindepth <= this.mindepth) {
-        // It's visible from the minimum depth.
-        //        p3d.visible_from = mindepth;
-        //        this.insertion_log.push(p3d.maxX, p3d.minX, p3d.minZ, p3d.data.text);
-        this.insert(p3d);
-      } else {
-        // If we can't find any colliders, try inserting it twice as high up.
-        // Recursive, so probably expensive.
-        this.insert_point(point, mindepth / 2);
-      }
-    } else {
-      this.insert_after_collisions(p3d);
-    }
+
+    // Calculate zoom level directly from the point's height/size
+    const zoomLevel = this.calculateZoomLevel(point.height);
+
+    // Create the 3D point with the calculated zoom level
+    const p3d = this.to3d(measured, zoomLevel, this.maxdepth);
+
+    // Directly insert the point without checking for collisions
+    this.insert(p3d);
   }
 
   insert_after_collisions(p3d: P3d) {

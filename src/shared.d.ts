@@ -248,6 +248,7 @@ export type Encoding = {
   position?: string;
   position0?: string;
   foreground?: null | FunctionalChannel;
+  paper_id?: number;
 };
 
 type ColumnTimeLookups = Record<string, Date>;
@@ -306,9 +307,13 @@ export type URLLabels = {
   size_field: string;
 };
 export type LabelOptions = {
+  maxSizeThreshold: any;
+  sizeToZoomFactor: any;
+  fontSizeFactor: any;
   useColorScale?: boolean; // Whether the colors of text should inherit from the active color scale.
   margin?: number; // The number of pixels around each box. Default 30.
   draggable_labels?: boolean; // Should labels be draggable in place?
+  labelClickableAreaFactor?: number; // Factor to scale the clickable area of labels. Default 0.6, height uses half this value.
 };
 
 export type Labelset = {
@@ -350,6 +355,7 @@ export type APICall = {
   background_options?: BackgroundOptions;
   zoom?: ZoomCall;
   zoom_align?: undefined | 'right' | 'left' | 'top' | 'bottom' | 'center';
+  paper_ids?: Float32Array;
 };
 
 export type InitialAPICall = APICall & {

@@ -171,7 +171,7 @@ export abstract class Aesthetic<
 
   get webGLDomain() {
     if (this.is_dictionary()) {
-      return [0, 4096];
+      return [0, 8192];
     }
     return this.domain;
   }
@@ -398,11 +398,12 @@ export abstract class Aesthetic<
 
     if (column?.type?.dictionary) {
       // NB--Assumes string type for dictionaries.
-
       input.fill('');
       const dvals = column.data[0].dictionary!.toArray() as string[];
-      for (const [i, d] of dvals.entries()) {
-        input[i] = d;
+      // Only process up to texture_size entries to prevent buffer overflow
+      const maxEntries = Math.min(dvals.length, texture_size);
+      for (let i = 0; i < maxEntries; i++) {
+        input[i] = dvals[i];
       }
     } else {
       input = input.map((d) => this.scale(d));
@@ -473,6 +474,10 @@ export abstract class PositionalAesthetic extends OneDAesthetic {
   static get default_constant() {
     return 0;
   }
+}
+
+export class Paper_id {
+  field = 'paper_id';
 }
 
 export class X extends PositionalAesthetic {

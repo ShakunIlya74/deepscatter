@@ -16,6 +16,7 @@ import { Bitmask, DataSelection } from './selection';
 import { dictionaryFromArrays } from './utilityFunctions';
 import type { BooleanColumnParams, CompositeSelectParams, FunctionSelectParams, IdSelectParams } from './selection';
 import type * as DS from './shared.d';
+import { decompressSync } from 'fflate';
 // DOM elements that deepscatter uses.
 
 const base_elements = [
@@ -60,7 +61,7 @@ class Scatterplot<T extends Tile> {
   public secondary_renderers: Record<string, Renderer<T>> = {};
   public selection_history: DS.SelectionRecord<T>[] = [];
   public tileProxy?: DS.TileProxy;
-  public util : Record<string, (unknown) => unknown> = {
+  public util: Record<string, (unknown) => unknown> = {
     dictionaryFromArrays,
     vectorFromArray
   };
@@ -87,12 +88,17 @@ class Scatterplot<T extends Tile> {
   private mark_ready: () => void = function () {
     /*pass*/
   };
+  public paper_ids: Set<number> = new Set();
+  public paper_ids_array: Float32Array;
+  public hover_enabled: boolean = true;
   /**
    * @param selector A DOM selector for the div in which the scatterplot will live.
    * @param width The width of the scatterplot (in pixels)
    * @param height The height of the scatterplot (in pixels)
    */
   constructor(selector: string, width: number, height: number, options: DS.ScatterplotOptions = {}) {
+    this.paper_ids_array = new Float32Array(256);
+
     this.bound = false;
     if (selector !== undefined) {
       this.bind(selector, width, height);
@@ -174,7 +180,7 @@ class Scatterplot<T extends Tile> {
    * Creates a new selection from a set of parameters, and immediately applies it to the plot.
    * @param params A set of parameters defining a selection. 
   */
-  async select_and_plot(params: IdSelectParams | BooleanColumnParams | FunctionSelectParams, duration=this.prefs.duration) : Promise<DataSelection<T>> {
+  async select_and_plot(params: IdSelectParams | BooleanColumnParams | FunctionSelectParams, duration = this.prefs.duration): Promise<DataSelection<T>> {
     const selection = await this.select_data(params)
     await selection.ready
     await this.plotAPI({
@@ -186,8 +192,8 @@ class Scatterplot<T extends Tile> {
           a: 1
         }
       }
-     })
-     return selection;
+    })
+    return selection;
   }
   /**
    * 
@@ -231,10 +237,40 @@ class Scatterplot<T extends Tile> {
     key_field: string
   ) {
     const true_codes: Record<string, number> = Array.isArray(codes)
-      ? Object.fromEntries(codes.map((next : string | bigint) => [next, 1]))
+      ? Object.fromEntries(codes.map((next: string | bigint) => [next, 1]))
       : codes;
     this._root.add_label_identifiers(true_codes, name, key_field);
   }
+
+
+
+
+  async add_labels_from_brotli_url(
+    url: string,
+    name: string,
+    label_key: string,
+    size_key: string | undefined,
+    options: DS.LabelOptions
+  ): Promise<void> {
+    await this.ready;
+    await this._root.promise;
+
+    return fetch(url)
+      .then(async (res) => {
+        const compressed = new Uint8Array(await res.arrayBuffer());
+        const decompressed = decompressSync(compressed); // Brotli decompress
+        const jsonStr = new TextDecoder().decode(decompressed);
+        const features = JSON.parse(jsonStr) as FeatureCollection;
+
+        this.add_labels(features, name, label_key, size_key, options);
+      })
+      .catch((error) => {
+        console.warn(error);
+        console.error('Broken addition of ', name);
+        //        this.stop_labellers();
+      });
+  }
+
 
   async add_labels_from_url(
     url: string,
@@ -328,7 +364,7 @@ class Scatterplot<T extends Tile> {
 
   async load_dataset(
     params: DS.DataSpec
-  ) : Promise<DS.Dataset<T>> {
+  ): Promise<DS.Dataset<T>> {
     if (params.source_url !== undefined) {
       this._root = Dataset.from_quadfeather(params.source_url, this as unknown as Scatterplot<QuadTile>) as unknown as Dataset<T>;
     } else if (params.arrow_table !== undefined) {
@@ -420,9 +456,9 @@ class Scatterplot<T extends Tile> {
      */
 
     const canvas = this.elements[2].selectAll('canvas').node() as HTMLCanvasElement;
-    
+
     const ctx = canvas.getContext('2d')
-    
+
     // as CanvasRenderingContext2D;
 
     ctx.clearRect(0, 0, 10_000, 10_000);
@@ -522,6 +558,33 @@ class Scatterplot<T extends Tile> {
 
   public dim(dimension: string): ConcreteAesthetic {
     return this._renderer.aes.dim(dimension).current as ConcreteAesthetic;
+  }
+
+  /**
+   * Update the list of paper_ids and re-render the plot.
+   * @param newPaperIds The new list of paper_ids.
+   */
+  public updatePaperIds(newPaperIds: string[]): void {
+    // Store set for quick lookup
+    this.paper_ids = new Set(newPaperIds.map(id => parseFloat(id)));
+
+    // Create a new Float32Array of fixed size
+    const array = new Float32Array(256);
+
+    let index = 0;
+    this.paper_ids.forEach((id) => {
+      if (index >= 256) {
+        console.warn('Too many paper_ids. Only the first 256 will be used.');
+        return;
+      }
+      array[index++] = id;
+    });
+
+    this.paper_ids_array = array;
+  }
+
+  public setHoverEnabled(enabled: boolean): void {
+    this.hover_enabled = enabled;
   }
 
   set tooltip_html(func) {
@@ -715,7 +778,7 @@ class Scatterplot<T extends Tile> {
         }
       }
     }
-    
+
     if (this._zoom === undefined) {
       await this.reinitialize();
     }
@@ -809,7 +872,7 @@ class Scatterplot<T extends Tile> {
    * Return the current state of the query. Can be used to save an API
    * call for use programatically.
    */
-  get query() : DS.APICall {
+  get query(): DS.APICall {
     const p = JSON.parse(JSON.stringify(this.prefs)) as DS.APICall;
     p.zoom = { bbox: this._renderer.zoom.current_corners() };
     return p;
@@ -912,7 +975,7 @@ abstract class SettableFunction<
     }
     return this._f;
   }
-  
+
   set f(f: string | ((datum: ArgType, plot: Scatterplot<Tiletype>) => FuncType)) {
     if (typeof f === 'string') {
       if (this.string_rep !== f) {
@@ -957,7 +1020,6 @@ class LabelClick extends SettableFunction<void, GeoJsonProperties> {
 
 class ClickFunction extends SettableFunction<void> {
   default(datum: StructRowProxy, plot = undefined) {
-    console.log({ ...datum });
     return;
   }
 }
@@ -966,12 +1028,12 @@ class ChangeToHighlitPointFunction extends SettableFunction<
   void,
   StructRowProxy[],
   QuadTile
-  > {
-    default(points: StructRowProxy[], plot = undefined) {
-      // console.log({points})
-      return;
-    }
+> {
+  default(points: StructRowProxy[], plot = undefined) {
+    // console.log({points})
+    return;
   }
+}
 
 class TooltipHTML extends SettableFunction<string> {
   default(point: StructRowProxy, plot = undefined) {

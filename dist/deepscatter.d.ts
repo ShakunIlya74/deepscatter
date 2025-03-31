@@ -42,6 +42,9 @@ declare class Scatterplot<T extends Tile> {
     handle_highlit_point_change: ChangeToHighlitPointFunction;
     on_zoom?: DS.onZoomCallback;
     private mark_ready;
+    paper_ids: Set<number>;
+    paper_ids_array: Float32Array;
+    hover_enabled: boolean;
     /**
      * @param selector A DOM selector for the div in which the scatterplot will live.
      * @param width The width of the scatterplot (in pixels)
@@ -75,6 +78,7 @@ declare class Scatterplot<T extends Tile> {
      * @param key_field The field in which to look for the identifiers.
      */
     add_identifier_column(name: string, codes: string[] | bigint[] | Record<string, number>, key_field: string): void;
+    add_labels_from_brotli_url(url: string, name: string, label_key: string, size_key: string | undefined, options: DS.LabelOptions): Promise<void>;
     add_labels_from_url(url: string, name: string, label_key: string, size_key: string | undefined, options: DS.LabelOptions): Promise<void>;
     /**
      *
@@ -130,6 +134,12 @@ declare class Scatterplot<T extends Tile> {
      * @returns
      */
     dim(dimension: string): ConcreteAesthetic;
+    /**
+     * Update the list of paper_ids and re-render the plot.
+     * @param newPaperIds The new list of paper_ids.
+     */
+    updatePaperIds(newPaperIds: string[]): void;
+    setHoverEnabled(enabled: boolean): void;
     set tooltip_html(func: (datum: StructRowProxy<any>, plot: Scatterplot<QuadTile>) => string);
     get tooltip_html(): (datum: StructRowProxy<any>, plot: Scatterplot<QuadTile>) => string;
     set label_click(func: any);

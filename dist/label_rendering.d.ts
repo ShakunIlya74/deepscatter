@@ -73,7 +73,11 @@ declare class DepthTree extends RBush3D {
     rectangle_buffer: number;
     margin: number;
     private _accessor;
-    constructor(context: CanvasRenderingContext2D, pixel_ratio: number, scale_factor?: number, zoom?: number[], margin?: number);
+    sizeToZoomFactor: number;
+    maxSizeThreshold: number;
+    fontSizeFactor: number;
+    constructor(context: CanvasRenderingContext2D, pixel_ratio: number, scale_factor?: number, zoom?: number[], margin?: number, // in screen pixels
+    sizeToZoomFactor?: number, maxSizeThreshold?: number);
     /**
      *
      * @param p1 a point
@@ -84,6 +88,7 @@ declare class DepthTree extends RBush3D {
     set accessor(f: (p: Point) => [number, number]);
     get accessor(): (p: Point) => [number, number];
     to3d(point: Point, zoom: number, maxZ: number | undefined): P3d;
+    calculateZoomLevel(pointSize: number): number;
     insert_point(point: RawPoint | Point, mindepth?: number): void;
     insert_after_collisions(p3d: P3d): void;
 }

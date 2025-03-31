@@ -68,9 +68,10 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
     this.tileSet = tileSet;
 
     this.aes = new AestheticSet(scatterplot, this.regl, tileSet);
-
+    // console.log("AES initialized.", this.aes);
     // allocate buffers in 64 MB blocks.
     this.initialize_textures();
+    this.initialize_paper_ids_texture();
 
     // Not the right way, for sure.
     this._initializations = [
@@ -101,6 +102,59 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
     this.tileSet = dataset;
     return this;
   }
+
+  initialize_paper_ids_texture() {
+    // Clean up any existing texture
+    if (this.textures.paper_ids) {
+      this.textures.paper_ids.destroy();
+    }
+    
+    const array = this.scatterplot.paper_ids_array;
+    if (!array || array.length === 0) {
+      console.log('Creating default empty paper IDs texture');
+      this.textures.paper_ids = this.regl.texture({
+        width: 1,
+        height: 1,
+        data: new Float32Array([0]),
+        type: 'float',
+        format: 'luminance',
+        min: 'nearest',
+        mag: 'nearest'
+      });
+      return;
+    }
+    
+    this.refresh_paper_ids_texture();
+    console.log("this.textures.paper_ids", this.textures.paper_ids);
+  }
+
+  refresh_paper_ids_texture() {
+    const array = this.scatterplot.paper_ids_array;
+    if (!array || array.length === 0) {
+      return;
+    }
+    
+    try {
+      this.textures.paper_ids({
+        data: array,
+        width: array.length,
+        height: 1,
+        type: 'float',
+        format: 'luminance'
+      });
+    } catch (e) {
+      this.textures.paper_ids = this.regl.texture({
+        width: 1,
+        height: 1,
+        data: new Float32Array([0]),
+        type: 'float',
+        format: 'luminance'
+      });
+    }
+
+    return this.textures.paper_ids;
+  }
+
 
   get props() {
     // Stuff needed for regl.
@@ -152,7 +206,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
         [transform.k, 0, transform.x],
         [0, transform.k, transform.y],
         [0, 0, 1],
-      ].flat(),
+      ].flat()
     } as const;
 
     // Clone.
@@ -271,6 +325,8 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
         // the deferred_functions queue.
         continue;
       }
+      
+      // console.log(tile._buffer_manager);
       const this_props = {
         manager: tile._buffer_manager,
         number: call_no++,
@@ -346,6 +402,8 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
       this.render_all(props);
     } catch (error) {
       console.warn('ERROR NOTED');
+      console.log("ERROR", error);
+      console.log("With Props", props);
       this.reglframe.cancel();
       throw error;
     }
@@ -916,6 +974,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
   }
 
   remake_renderer() {
+    // console.log(props);
     const { regl } = this;
     // This should be scoped somewhere to allow resizing.
 
@@ -1050,6 +1109,9 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
         u_zoom(_, props) {
           return props.zoom_matrix;
         },
+        u_paper_ids_size: () => Math.min((this.aes.scatterplot.paper_ids_array.filter(id => id !== 0).length), 256.),
+        u_paper_ids_texture: () => this.refresh_paper_ids_texture(),
+        u_hover_enabled: () => this.aes.scatterplot.hover_enabled ? 1 : 0,
       },
     };
 
@@ -1063,7 +1125,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
         return c || { constant: 0 };
       };
     }
-
+    console.log(this.aes);
     for (const k of [
       'x',
       'y',
@@ -1076,6 +1138,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
       'filter',
       'filter2',
       'foreground',
+      'paper_id',
       //      'character',
     ] as const) {
       for (const time of ['current', 'last']) {
@@ -1096,6 +1159,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
           { aes_to_buffer_num }
         ) => {
           const val = aes_to_buffer_num[`${k}--${time}`];
+          // console.log("aes_to_buffer_num", k, time, val);
           if (val === undefined) {
             return -1;
           }
@@ -1115,11 +1179,13 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
           throw 'Invalid transform';
         };
         parameters.uniforms[`u_${temporal}${k}_constant`] = () => {
+          // console.log('u_', temporal.toString(), k, '_constant', this.aes.dim(k)[time].constant);
           return this.aes.dim(k)[time].constant;
         };
       }
       // Copy the parameters from the data name.
     }
+    console.log("parameters", parameters);
     //@ts-expect-error
     this._renderer = regl(parameters);
     return this._renderer;
@@ -1152,11 +1218,13 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
       'filter',
       'filter2',
       'foreground',
+      'paper_id',
     ] as const;
     for (const aesthetic of priorities) {
       const times = ['current', 'last'] as const;
       for (const time of times) {
         try {
+          // console.log("aesthetic", aesthetic, time, "this.aes.dim(aesthetic)[time].field", this.aes.dim(aesthetic)[time].field);
           if (this.aes.dim(aesthetic)[time].field) {
             buffers.push({
               aesthetic,
@@ -1171,6 +1239,7 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
         }
       }
     }
+    // console.log("buffers", buffers);
 
     buffers.sort((a, b) => {
       // Current values always come first.
@@ -1182,6 +1251,8 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
       }
       return priorities.indexOf(a.aesthetic) - priorities.indexOf(b.aesthetic);
     });
+    // console.log("sorted buffers", buffers);
+
 
     const aes_to_buffer_num: Record<string, number> = {}; // eg 'x' => 3
 
@@ -1210,6 +1281,10 @@ export class ReglRenderer<T extends Tile> extends Renderer<T> {
       }
     }
 
+    // console.log("buffer_num_to_variable", [...Object.keys(variable_to_buffer_num)]);
+    // console.log("aes_to_buffer_num", aes_to_buffer_num);
+    // console.log("variable_to_buffer_num", variable_to_buffer_num);
+    
     const buffer_num_to_variable = [...Object.keys(variable_to_buffer_num)];
     this.aes_to_buffer_num = aes_to_buffer_num;
     this.variable_to_buffer_num = variable_to_buffer_num;
@@ -1240,6 +1315,7 @@ export class TileBufferManager<T extends Tile> {
   public regl: Regl;
   public renderer: ReglRenderer<T>;
   public regl_elements: Map<string, DS.BufferLocation | null>;
+  private hehe = 0;
 
   constructor(regl: Regl, tile: T, renderer: ReglRenderer<T>) {
     this.tile = tile;
@@ -1258,6 +1334,12 @@ export class TileBufferManager<T extends Tile> {
         },
       ],
     ]);
+    /* this.regl_elements.set('paper_id', {
+      offset: 0,
+      stride: 4,
+      buffer: this.renderer.regl.buffer(tile.record_batch.getChild('paper_id').data),
+      byte_size: 4 * tile.record_batch.numRows,
+    }); */
   }
 
   /**
@@ -1280,6 +1362,7 @@ export class TileBufferManager<T extends Tile> {
       }
     }
 
+    // console.log("ready", this.hehe++);
     for (const key of ['ix', 'ix_in_tile', ...needed_dimensions]) {
       if (!this.ready_or_not_here_it_comes(key).ready) {
         return false;
@@ -1317,6 +1400,7 @@ export class TileBufferManager<T extends Tile> {
       regl_elements.set(key, null);
       const created = new Promise<void>((resolve) => {
         renderer.deferred_functions.push(async () => {
+          // console.log('Creating buffer for', key);
           await this.create_regl_buffer(key);
           resolve();
         });
@@ -1453,8 +1537,9 @@ export class TileBufferManager<T extends Tile> {
 
     const buffer_desc = renderer.buffers.allocate_block(data_length, item_size);
 
+    // console.log('Allocated buffer for', key, buffer_desc);
     regl_elements.set(key, buffer_desc);
-
+    // console.log('Buffer data', data);
     buffer_desc.buffer.subdata(data, buffer_desc.offset);
   }
 }

@@ -10,6 +10,7 @@ import {
   X0,
   Y0,
   Foreground,
+  Paper_id
 } from './Aesthetic';
 import { Color } from './ColorAesthetic';
 
@@ -25,6 +26,7 @@ export const dimensions = {
   x0: X0,
   y0: Y0,
   foreground: Foreground,
+  paper_id: Paper_id
 } as const;
 
 export type ConcreteAesthetic =
@@ -37,7 +39,8 @@ export type ConcreteAesthetic =
   | X0
   | Y0
   | Foreground
-  | Filter;
+  | Filter
+  | Paper_id;
 
 import type { QuadtileDataset } from './Dataset';
 import type { Regl } from 'regl';
