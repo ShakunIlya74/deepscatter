@@ -38034,11 +38034,15 @@ class LabelMaker extends Renderer {
       const initialFontSize = datum2.height;
       const isL4Label = initialFontSize < 13;
       const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
+      const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
       const isL1Label = initialFontSize >= 24;
       let fontWeight = "normal";
-      if (isL1Label || isL4Label) {
-        const l1FontWeight = "600";
-        fontWeight = isL1Label ? l1FontWeight : "bold";
+      if (isL1Label) {
+        fontWeight = "600";
+      } else if (isL2Label) {
+        fontWeight = "580";
+      } else if (isL3Label) {
+        fontWeight = "550";
       }
       context2.font = `${fontWeight} ${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
       const propertyColor = datum2.properties.color || "#666666";

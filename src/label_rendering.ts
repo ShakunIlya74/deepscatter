@@ -276,9 +276,9 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       // Store the original text for measurement
       const text = datum.text;
       const fontSize = Math.round(datum.height * size_adjust * this.options.fontSizeFactor);
-
       const initialFontSize = datum.height;
-      // todo: pass these ranges from the be
+      
+      // Define label levels
       const isL4Label = initialFontSize < 13;
       const isL3Label = initialFontSize >= 13 && initialFontSize < 16;
       const isL2Label = initialFontSize >= 16 && initialFontSize < 24;
@@ -286,11 +286,14 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       
       // Determine font weight based on label level
       let fontWeight = 'normal';
-      // L1 and L4 labels should be bold
-      if (isL1Label || isL4Label) {
-        const l1FontWeight = '600';
-        fontWeight = isL1Label ? (l1FontWeight || 'bold') : 'bold';
+      if (isL1Label) {
+        fontWeight = '600';
+      } else if (isL2Label) {
+        fontWeight = '580';
+      } else if (isL3Label) {
+        fontWeight = '550';
       }
+      // L4 labels should be normal weight
       
       // Use a more modern font stack with appropriate weight
       context.font = `${fontWeight} ${fontSize}pt 'Inter', 'Segoe UI', Roboto, -apple-system, sans-serif`;
@@ -326,7 +329,6 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       const textWidth = textMetrics.width;
       const textHeight = fontSize * 1.2; // Approximate height based on font size
 
-
       // Draw background rectangle with padding
       let padding = 0;
       if (isL4Label || isL3Label) {
@@ -346,7 +348,7 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       // Save context for shadow to only apply to background
       context.save();
 
-      // Replace yellow glow for L4 labels with consistent styling
+      // Set styling based on label level
       if (isL4Label) {
         // White shadow but with lower intensity for L4 labels
         context.shadowColor = "rgba(255, 255, 255, 0.97)";
