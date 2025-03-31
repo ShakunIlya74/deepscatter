@@ -183,13 +183,20 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
       maxZ: transform.k,
     });
 
+    // Sort overlaps by height (smallest to largest) so larger labels appear on top
+    const sortedOverlaps = [...overlaps].sort((a, b) => {
+      const heightA = (a.data as RawPoint).height || 0;
+      const heightB = (b.data as RawPoint).height || 0; 
+      return heightA - heightB; // Ascending order: small to large
+    });
+
     //  context.fillStyle = "rgba(0, 0, 0, 0)";
     context.clearRect(0, 0, 4096, 4096);
     const dim = this.scatterplot.dim('color');
     const bboxes = select(this.labelgroup)
       .selectAll('rect.labelbbox')
       // Keyed by the coordinates.
-      .data(overlaps, (d) => '' + d.minZ + d.minX)
+      .data(sortedOverlaps, (d) => '' + d.minZ + d.minX)
       .join((enter) =>
         enter
           .append('rect')
@@ -202,7 +209,8 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
     const Y_BUFFER = 5;
 
     // Go through and draw the canvas events.
-    for (const d of overlaps) {
+    // Use sortedOverlaps instead of overlaps for drawing
+    for (const d of sortedOverlaps) {
       const datum = d.data as RawPoint;
       const x = x_(datum.x) as number;
       const y = y_(datum.y) as number;
@@ -257,6 +265,8 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         // context.shadowColor = 'black';
 
       }
+
+      // labels style part below
 
       let emphasize = 0;
       if (this.hovered === '' + d.minZ + d.minX) {
@@ -421,6 +431,11 @@ export class LabelMaker<T extends Tile> extends Renderer<T> {
         context.fillText(text, x, y);
         context.restore();
       }
+
+
+
+
+
       /*      context.strokeStyle = 'red';
       context.strokeRect(
         x - (datum.pixel_width / 2) * this.tree.pixel_ratio,

@@ -37976,13 +37976,18 @@ class LabelMaker extends Renderer {
       maxY: corners.y[1],
       maxZ: transform.k
     });
+    const sortedOverlaps = [...overlaps].sort((a, b) => {
+      const heightA = a.data.height || 0;
+      const heightB = b.data.height || 0;
+      return heightA - heightB;
+    });
     context2.clearRect(0, 0, 4096, 4096);
     const dim = this.scatterplot.dim("color");
-    const bboxes = select(this.labelgroup).selectAll("rect.labelbbox").data(overlaps, (d) => "" + d.minZ + d.minX).join(
+    const bboxes = select(this.labelgroup).selectAll("rect.labelbbox").data(sortedOverlaps, (d) => "" + d.minZ + d.minX).join(
       (enter) => enter.append("rect").attr("class", "labellbox").style("opacity", RECT_DEFAULT_OPACITY)
     );
     const Y_BUFFER = 5;
-    for (const d of overlaps) {
+    for (const d of sortedOverlaps) {
       const datum2 = d.data;
       const x = x_(datum2.x);
       const y = y_(datum2.y);
